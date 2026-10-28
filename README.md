@@ -972,6 +972,108 @@ fiber-map/
 └── README.bn.md              # Bengali install guide
 ```
 
+
+
+
+## MySQL Setup Guide for Ubuntu Linux Server (Important)
+
+This guide covers installing MySQL, setting the root password, logging in, and creating a database and a dedicated user - step by step.
+
+### Step 1: Install MySQL
+
+Run in Terminal:
+
+```bash
+sudo apt update
+sudo apt install mysql-server -y
+
+
+After installation, start MySQL:
+sudo systemctl enable --now mysql
+
+Check status:
+sudo systemctl status mysql
+
+If you see `active (running)`, MySQL is running. Press `q` to exit.
+
+### Step 2: First Time MySQL Login
+
+If successful, you will see:
+
+You are now inside MySQL. On Ubuntu, you can usually login as root without a password at first.
+
+### Step 3: Set Root Password
+
+Inside MySQL, run:
+
+Replace `MyStrongPass123!` with your own strong password.
+
+> This is the MySQL Root password, not a specific database password.
+> If you get an error while setting the password, send the full error message. Do not try another authentication method on your own.
+
+### Step 4: Test Login with Root Password
+
+First, exit from MySQL:
+
+Now in Terminal, run:
+
+It will show:
+
+Type the password you set in Step 3 and press Enter. Nothing will appear on the screen while typing, which is normal.
+
+If login is successful:
+
+If this step succeeds, your Root password setup is correct.
+
+### Step 5: Create a New Database
+
+Inside the `mysql>` prompt, run:
+
+Check if the database was created:
+
+You should see `myapp_db` in the list.
+
+### Step 6: Create a Dedicated User for the Database
+
+It's best practice not to use root for your application.
+
+Replace `AppStrongPass456!` with your own strong password.
+
+Now exit:
+
+Test login with the database user:
+
+Enter the password from Step 6 when prompted.
+
+### Step 7: Verify Everything
+
+After successful login, run:
+
+If it shows `myapp_db`, the connection is correct. Since it's a new database, `SHOW TABLES` may show no tables, which is normal.
+
+### Setup Summary
+
+> **Security:** Always use your own strong passwords and never share your actual passwords with anyone.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ---
 
 ## 15. Security checklist
