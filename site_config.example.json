@@ -1,0 +1,14 @@
+{
+  "port": 5003,
+  "secret_key": "",
+  "db_engine": "mysql",
+  "db_name": "fiber_map",
+  "db_user": "fibermap",
+  "db_password": "ChangeMe_123",
+  "db_host": "127.0.0.1",
+  "db_port": "3306",
+  "setup_required": null,
+  "restart_required": false,
+  "bootstrap": null,
+  "pending_sql": null
+}

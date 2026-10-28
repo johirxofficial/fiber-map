@@ -1,0 +1,15 @@
+.git
+.gitignore
+.venv
+frontend/node_modules
+frontend/build
+__pycache__
+*.pyc
+*.pyo
+*.zip
+*.log
+db.sqlite3
+test
+tmp
+site_config.json
+.env

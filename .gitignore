@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Django
+db.sqlite3
+/staticfiles/
+*.log
+.pytest_cache/
+.coverage
+media/*
+!media/.gitkeep
+
+# Local configuration and secrets
+site_config.json
+site_config.local.json
+.env
+.env.local
+.env.*.local
+.htaccess
+.htaccess.*
+.well-known/
+
+# Local-only folders and legacy hosting files
+/test/
+/tmp/
+/static/
+/fiberapp/
+/public/
+/fiber
+
+# Node / React
+frontend/node_modules/
+frontend/build/
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Archives, backups and generated files
+*.zip
+*.bak
+*.tmp
+demo/noakhal1_fiberMap_demo.sql

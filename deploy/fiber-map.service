@@ -1,0 +1,26 @@
+[Unit]
+Description=fiber-map optical-fiber network manager
+Documentation=https://github.com/johirxofficial/fiber-map
+After=network-online.target mysql.service mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__APP_USER__
+Group=__APP_USER__
+WorkingDirectory=__APP_DIR__
+Environment=DJANGO_DEBUG=0
+Environment=PYTHONUNBUFFERED=1
+# Trust X-Forwarded-* only from the local Nginx/Apache reverse proxy.
+Environment=TRUSTED_PROXY=127.0.0.1
+# The port lives in site_config.json so Management changes survive restarts.
+ExecStart=__APP_DIR__/.venv/bin/python __APP_DIR__/run.py --host 0.0.0.0
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+KillMode=mixed
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

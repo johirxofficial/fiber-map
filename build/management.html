@@ -1,0 +1,1379 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Management</title>
+<link rel="icon" href="/static/img/logo.jpg">
+<link rel="stylesheet" href="/static/css/main.afbead84.css?v=20261026d">
+<script src="/static/js/branding.js?v=20261027a" defer></script>
+<style>
+  :root { --brand:#2185d0; --dark:#111827; --muted:#6b7280; --line:#e5e7eb; --danger:#db2828; --ok:#21ba45; }
+  * { box-sizing: border-box; }
+  body { font-family: Lato, "Helvetica Neue", Arial, Helvetica, sans-serif; margin:0; background:#f7f8fa; color:var(--dark); }
+
+  /* Reuse the exact Semantic UI menu markup/styles from the main app. */
+  .site-menu { position:sticky; top:0; z-index:20; background:#fff; margin:0 !important;
+               padding:0 24px; border-radius:0 !important; }
+  .site-menu .brand-item { display:flex !important; align-items:center; gap:9px;
+                           color:#111 !important; font-weight:700 !important; font-size:17px; }
+  .site-menu .brand-item img { width:30px; height:30px; object-fit:contain; border-radius:4px; }
+  .site-menu .logout-item { background:transparent; border:0; cursor:pointer; font:inherit; }
+
+  .wrap { max-width:1180px; margin:26px auto; padding:0 18px 60px; }
+  h1 { margin:0 0 4px; font-size:28px; font-weight:700; }
+  .sub { color:var(--muted); margin:0 0 20px; font-size:14px; }
+
+  .tabs { display:flex; gap:2px; margin-bottom:20px; border-bottom:1px solid var(--line); overflow-x:auto; }
+  .tab { padding:11px 16px; border:0; border-bottom:2px solid transparent; margin-bottom:-1px;
+         background:transparent; cursor:pointer; font:inherit; font-size:14px; color:rgba(0,0,0,.6); white-space:nowrap; }
+  .tab:hover { color:rgba(0,0,0,.9); }
+  .tab.active { color:#111; font-weight:700; border-bottom-color:#111; }
+
+  .card { background:#fff; border:1px solid var(--line); border-radius:4px; padding:22px; margin-bottom:18px;
+          box-shadow:0 1px 2px rgba(34,36,38,.08); }
+  .card h2 { margin:0 0 16px; font-size:18px; font-weight:700; }
+  .card h3 { margin:0 0 12px; font-size:15px; font-weight:700; }
+  .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 18px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px 18px; }
+  .full { grid-column:1/-1; }
+  label { display:block; font-size:13px; font-weight:700; color:#374151; margin-bottom:6px; }
+  input, select, textarea { width:100%; padding:10px 12px; border:1px solid rgba(34,36,38,.15); border-radius:4px;
+                  font:inherit; background:#fff; color:#111; }
+  input:focus, select:focus, textarea:focus { outline:2px solid rgba(33,133,208,.25); border-color:var(--brand); }
+  button.btn, a.btn { display:inline-block; padding:10px 16px; border:0; border-radius:4px; background:#111827; color:#fff;
+                      cursor:pointer; font:inherit; font-weight:700; text-decoration:none; }
+  button.btn:hover, a.btn:hover { background:#000; color:#fff; }
+  button.btn.ghost, a.btn.ghost { background:#fff; color:#111; border:1px solid rgba(34,36,38,.2); }
+  button.btn.ghost:hover, a.btn.ghost:hover { background:#f8fafc; color:#111; }
+  button.btn.danger { background:var(--danger); }
+  button.btn.small { padding:6px 10px; font-size:12px; border-radius:3px; }
+  button.btn:disabled { opacity:.55; cursor:wait; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+  .row > * { flex:0 1 auto; }
+  .row .grow { flex:1 1 160px; }
+  .muted { color:var(--muted); font-size:13px; }
+  .hint { color:var(--muted); font-size:12px; margin-top:6px; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { border-bottom:1px solid #eef2f7; padding:11px 8px; text-align:left; font-size:13px; vertical-align:middle; }
+  th { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; }
+  .chip { display:inline-block; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; background:#eef2ff; color:#3730a3; }
+  .chip.admin { background:#fef3c7; color:#92400e; }
+  .chip.manager { background:#e0f2fe; color:#075985; }
+  .flag { display:inline-flex; align-items:center; gap:5px; font-size:12px; white-space:nowrap; }
+  .alert { border-radius:4px; padding:12px 14px; margin:0 0 16px; font-size:13px; }
+  .alert.error { background:#fff6f6; color:#9f3a38; border:1px solid #e0b4b4; }
+  .alert.ok { background:#fcfff5; color:#2c662d; border:1px solid #a3c293; }
+  .alert.warn { background:#fffaf3; color:#573a08; border:1px solid #c9ba9b; }
+  .alert.info { background:#f8ffff; color:#276f86; border:1px solid #a9d5de; }
+  .logo-preview { width:54px; height:54px; border:1px solid var(--line); border-radius:4px; object-fit:contain; background:#f8fafc; }
+  .hidden { display:none !important; }
+  .status { font-size:12px; margin-top:6px; }
+  .status.ok { color:var(--ok); } .status.err { color:var(--danger); }
+
+  .category-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:18px; }
+  .category-card-wrap { display:flex; flex-direction:column; border:1px solid var(--line); border-radius:4px; background:#fff;
+                        overflow:hidden; }
+  .category-card-wrap.active { border-color:var(--brand); box-shadow:0 0 0 2px rgba(33,133,208,.16); }
+  .category-card { text-align:left; background:#fff; border:0; border-radius:0; padding:14px;
+                   cursor:pointer; font:inherit; color:var(--dark); flex:1; }
+  .category-card:hover { background:#f8fafc; }
+  .category-card.active { box-shadow:none; }
+  .category-card .cat-label { font-size:12px; font-weight:700; color:#374151; text-transform:uppercase; letter-spacing:.06em;
+                              display:flex; align-items:center; gap:7px; }
+  .cat-dot { width:10px; height:10px; border-radius:50%; display:inline-block; flex:0 0 auto; }
+  .cat-badge { font-size:9px; text-transform:none; letter-spacing:0; background:#eef2ff; color:#3730a3;
+               border-radius:3px; padding:2px 5px; margin-left:auto; }
+  .category-card .cat-count { font-size:22px; font-weight:700; margin-top:5px; }
+  .category-card .cat-desc { color:var(--muted); font-size:11px; margin-top:4px; line-height:1.35; }
+  .category-card-actions { display:flex; gap:6px; padding:0 10px 10px; }
+  .category-card-actions .btn { flex:1; text-align:center; }
+  .category-card.add-category { border:1px dashed rgba(34,36,38,.3); border-radius:4px; background:#fff;
+                                min-height:88px; display:flex; align-items:center; justify-content:center;
+                                color:var(--brand); font-weight:700; }
+  .category-card.add-category:hover { background:#f8ffff; border-color:var(--brand); }
+  .table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .category-form-card { border-top:1px solid #eef2f7; padding-top:16px; margin-top:4px; }
+  .category-form-card h3 { display:flex; align-items:center; gap:8px; }
+  .color-input-row { display:flex; align-items:center; gap:8px; }
+  .color-input-row input[type=color] { width:52px; height:40px; padding:3px; }
+  .category-form-card .grid3 { align-items:start; }
+  .category-form-card .row { margin-top:16px; }
+
+  .about-list { margin:0; padding-left:18px; color:#374151; font-size:14px; line-height:1.75; }
+  .about-kv { display:grid; grid-template-columns:180px 1fr; gap:8px 14px; font-size:14px; }
+  .about-kv dt { color:var(--muted); font-weight:700; }
+  .about-kv dd { margin:0; }
+  .modifier { display:flex; gap:14px; align-items:center; padding:14px; border:1px solid var(--line);
+              border-radius:4px; background:#f8fafc; }
+  .modifier .avatar { width:52px; height:52px; border-radius:50%; background:#111827; color:#fff; display:flex;
+                      align-items:center; justify-content:center; font-size:20px; font-weight:700; }
+
+  @media (max-width:900px) {
+    .wrap { padding:0 12px 50px; }
+    .card { padding:16px; }
+    table { min-width:680px; }
+    .table-wrap { border:1px solid #eef2f7; border-radius:4px; }
+  }
+
+  @media (max-width:720px) {
+    .grid, .grid3 { grid-template-columns:1fr; }
+    .category-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .site-menu { padding:0 8px; overflow-x:auto; flex-wrap:nowrap; }
+    .site-menu .item { padding-left:9px !important; padding-right:9px !important; white-space:nowrap; }
+    .wrap { margin-top:18px; padding:0 9px 45px; }
+    h1 { font-size:23px; }
+    .sub { font-size:13px; }
+    .tabs { gap:0; }
+    .tab { padding:10px 12px; font-size:13px; }
+    .card { padding:14px 12px; }
+    .row > * { flex:1 1 100%; }
+    .row > .btn, .row > button { width:100%; }
+    .row .grow { flex-basis:100%; }
+    .about-kv { grid-template-columns:1fr; }
+    .modifier { flex-direction:column; align-items:flex-start; }
+    .category-card-actions { padding:0 8px 8px; }
+    .category-card-actions .btn { padding:7px 4px; font-size:11px; }
+  }
+
+  @media (max-width:430px) {
+    .category-grid { grid-template-columns:1fr; }
+    .category-card { min-height:72px; }
+  }
+</style>
+</head>
+<body>
+<div class="ui pointing secondary menu site-menu">
+  <a class="item brand-item" href="/"><img id="brandLogo" alt="logo" src="/static/img/logo.jpg"><span id="brandName">fiber-map</span></a>
+  <a class="item" href="/" data-nav="dashboard">Dashboard</a>
+  <a class="item" href="/network-point" data-nav="network">Network Point</a>
+  <a class="item active" href="/management/" data-nav="management" id="managementNav">Management</a>
+  <div class="right menu">
+    <button id="logoutBtn" class="item logout-item" type="button">Logout</button>
+  </div>
+</div>
+<div class="wrap">
+  <h1 id="pageTitle">Management panel</h1>
+  <p class="sub">Branding, users &amp; permissions, network categories, branches &amp; zones, database and project information.</p>
+  <div class="tabs" id="managementTabs">
+    <button class="tab active" data-tab="site">Site &amp; branding</button>
+    <button class="tab" data-tab="users">Users &amp; permissions</button>
+    <button class="tab" data-tab="categories">Categories</button>
+    <button class="tab" data-tab="zones">Branches &amp; Zones</button>
+    <button class="tab" data-tab="database">Database</button>
+    <button class="tab" data-tab="about">About</button>
+  </div>
+  <div id="content"></div>
+</div>
+
+<script>
+const token = localStorage.getItem('token');
+const api = (p) => '/api' + p;
+let me = null;
+let canManage = false;
+let siteSettings = null;
+let users = [];
+let dbInfo = null;
+
+/* Network categories (Network Point models). */
+let categoryList = [];
+let categoryType = 'POP';
+let categoryItems = [];
+let categoryEditing = null;
+let categoryDefinitionEditing = null;
+let categoryDefinitionCreating = false;
+let categoryFilterZone = '';
+let categoryFilterSubzone = '';
+let categorySearch = '';
+let categorySearchTimer = null;
+let categorySearchFocus = false;
+
+/* Branch = Zone model, Zone = SubZone model. */
+let branchList = [];
+let zoneList = [];
+let zonesLoaded = false;
+let branchEditing = null;
+let zoneEditing = null;
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function headers(json = true) {
+  const h = {};
+  if (token) h['Authorization'] = 'Token ' + token;
+  if (json) h['Content-Type'] = 'application/json';
+  return h;
+}
+async function req(method, url, body, isForm = false) {
+  const options = { method, headers: headers(!isForm) };
+  if (body !== undefined) options.body = isForm ? body : JSON.stringify(body);
+  const response = await fetch(url, options);
+  if (response.status === 401) {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+    throw new Error('Session expired');
+  }
+  if (!response.ok) {
+    let message = response.statusText;
+    try {
+      const data = await response.json();
+      message = data.detail || JSON.stringify(data);
+    } catch (e) {}
+    throw new Error(message);
+  }
+  if (response.status === 204) return null;
+  return response.json();
+}
+function alertBox(message, type = 'info') {
+  return `<div class="alert ${type}">${escapeHtml(message)}</div>`;
+}
+function setContent(html) {
+  document.getElementById('content').innerHTML = html;
+}
+
+async function loadPublicBranding() {
+  try {
+    const response = await fetch('/api/site/');
+    const data = await response.json();
+    document.getElementById('brandName').textContent = data.site_name || 'fiber-map';
+    document.getElementById('brandLogo').src = data.logo_url || '/static/img/logo.jpg';
+    document.title = (data.site_name || 'fiber-map') + ' - Management';
+  } catch (e) {}
+}
+
+function hideAdminLinks() {
+  document.getElementById('managementNav')?.classList.remove('hidden');
+}
+
+async function checkAccess() {
+  if (!token) { window.location.href = '/login'; return false; }
+  const cachedManage = localStorage.getItem('site_can_manage') === '1';
+  hideAdminLinks();
+  let data = null;
+  let lastError = null;
+  for (let attempt = 0; attempt < 2 && !data; attempt += 1) {
+    try { data = await req('GET', api('/verify-token/')); }
+    catch (error) { lastError = error; }
+  }
+  if (!data) {
+    /* A temporary network failure must not hide the menu or log the user out. */
+    setContent(alertBox((lastError && lastError.message) || 'Could not verify your session. Please refresh.', 'error'));
+    return false;
+  }
+  me = data.user;
+  canManage = !!(me.permissions && me.permissions.manage);
+  try { localStorage.setItem('site_can_manage', canManage ? '1' : '0'); } catch (e) {}
+  if (!canManage) {
+    document.getElementById('managementTabs').classList.add('hidden');
+    document.getElementById('pageTitle').textContent = 'Management';
+    document.querySelector('.sub').textContent = 'Your account cannot change installation settings.';
+    setContent(`
+      <div class="card">
+        <h2>Access restricted</h2>
+        ${alertBox('You do not have permission to manage this installation. Ask an administrator to grant the "Manage users" permission, or continue using the map.', 'warn')}
+        <div class="row">
+          <a class="btn" href="/">Go to Dashboard</a>
+          <a class="btn ghost" href="/network-point">Open Network Point</a>
+        </div>
+      </div>
+    `);
+    return false;
+  }
+  return true;
+}
+
+async function loadSite() {
+  siteSettings = await req('GET', api('/site-settings/'));
+}
+async function loadUsers() {
+  users = await req('GET', api('/users/'));
+}
+async function loadDbInfo() {
+  dbInfo = await req('GET', api('/database/info/'));
+}
+async function loadZonesData(force = false) {
+  if (!zonesLoaded || force) {
+    [branchList, zoneList] = await Promise.all([req('GET', api('/zone/')), req('GET', api('/subzone/'))]);
+    zonesLoaded = true;
+  }
+}
+
+/* ----------------------------- Site / branding ----------------------------- */
+function renderSite(message = '', type = 'ok') {
+  const s = siteSettings;
+  const logo = s.logo_url || '/static/img/logo.jpg';
+  setContent(`
+    ${message ? alertBox(message, type) : ''}
+    <div class="card">
+      <h2>Branding</h2>
+      <form id="siteForm">
+        <div class="grid">
+          <div>
+            <label>Site name</label>
+            <input name="site_name" value="${escapeHtml(s.site_name)}" required maxlength="120">
+          </div>
+          <div>
+            <label>Tagline</label>
+            <input name="tagline" value="${escapeHtml(s.tagline)}" maxlength="200">
+          </div>
+          <div>
+            <label>Logo</label>
+            <img class="logo-preview" id="logoPreview" src="${escapeHtml(logo)}" alt="logo">
+            <input type="file" name="logo" accept=".png,.jpg,.jpeg,.gif,.webp,.svg" style="margin-top:8px">
+            <div class="hint">Leave empty to keep the current logo.</div>
+          </div>
+          <div>
+            <label>Web port</label>
+            <input type="number" name="port" min="1" max="65535" value="${s.port}">
+            <div class="hint">run.py/systemd applies a port change automatically. On Passenger/shared hosting, restart the app from the hosting panel.</div>
+          </div>
+          <div>
+            <label>Map centre latitude</label>
+            <input type="number" step="any" name="map_center_lat" value="${s.map_center_lat ?? 22.8724}">
+            <div class="hint">Default centre and live-location reference point.</div>
+          </div>
+          <div>
+            <label>Map centre longitude</label>
+            <input type="number" step="any" name="map_center_lng" value="${s.map_center_lng ?? 91.0973}">
+          </div>
+          <div>
+            <label>Default zoom</label>
+            <input type="number" name="map_zoom" min="1" max="22" value="${s.map_zoom ?? 13}">
+          </div>
+          <div>
+            <label>GPS radius (km)</label>
+            <input type="number" name="gps_max_distance_km" min="0" max="20000" value="${s.gps_max_distance_km ?? 500}">
+            <div class="hint">Reject browser GPS fixes farther than this from the map centre. Set 0 to disable.</div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:18px"><button class="btn" type="submit">Save branding</button></div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>How permissions work</h2>
+      <p class="muted" style="margin:0">Administrators always have every permission. A normal user only gets the boxes ticked on their row.
+      New users now get their permissions set directly in the <strong>Users &amp; permissions</strong> tab, and you can grant or
+      remove add / edit / delete / manage from there at any time.</p>
+    </div>
+  `);
+  const form = document.getElementById('siteForm');
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const button = form.querySelector('button');
+    button.disabled = true;
+    try {
+      const result = await req('POST', api('/site-settings/'), formData, true);
+      siteSettings = result.settings;
+      renderSite(result.message || 'Saved.', 'ok');
+      loadPublicBranding();
+    } catch (error) {
+      renderSite(error.message, 'error');
+    } finally { button.disabled = false; }
+  });
+}
+
+/* ------------------------------ Users -------------------------------------- */
+function permissionCell(user, field, label) {
+  const disabled = user.is_superuser || user.is_staff || user.role === 'admin';
+  return `<label class="flag"><input type="checkbox" data-user="${user.id}" data-field="${field}" ${user[field] ? 'checked' : ''} ${disabled ? 'disabled' : ''}> ${label}</label>`;
+}
+function renderUsers(message = '', type = 'ok') {
+  const rows = users.map(user => {
+    const roleClass = user.role === 'admin' ? 'admin' : (user.role === 'manager' ? 'manager' : '');
+    const disabled = user.is_superuser || user.is_staff || user.role === 'admin';
+    return `<tr>
+      <td>${user.id}</td>
+      <td><strong>${escapeHtml(user.username)}</strong><div class="muted">${escapeHtml(user.email || '')}</div></td>
+      <td><span class="chip ${roleClass}">${escapeHtml(user.role || 'user')}</span></td>
+      <td>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          ${permissionCell(user, 'can_add_data', 'Add')}
+          ${permissionCell(user, 'can_edit_data', 'Edit')}
+          ${permissionCell(user, 'can_delete_data', 'Delete')}
+          ${permissionCell(user, 'can_manage_users', 'Manage')}
+        </div>
+      </td>
+      <td>
+        <div class="row" style="gap:6px;flex-wrap:nowrap">
+          <button class="btn small" onclick="saveUser(${user.id})" ${me.id === user.id ? 'disabled title="You cannot edit your own permissions here"' : ''}>Save</button>
+          <button class="btn small ghost" onclick="resetPassword(${user.id})">Password</button>
+          ${me.id === user.id || disabled ? '' : `<button class="btn small danger" onclick="deleteUser(${user.id})">Delete</button>`}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  setContent(`
+    ${message ? alertBox(message, type) : ''}
+    <div class="card">
+      <h2>Users &amp; permissions</h2>
+      <div class="row" style="justify-content:space-between;margin-bottom:12px">
+        <div class="muted">${users.length} account${users.length === 1 ? '' : 's'}. Change permissions and press Save on that row.</div>
+        <button class="btn" type="button" id="goCreateUser">Create new user</button>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th>ID</th><th>User</th><th>Role</th><th>Permissions</th><th>Actions</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="5" class="muted">No users yet.</td></tr>'}</tbody></table>
+      </div>
+      <div class="hint" style="margin-top:10px">Untick a box and press Save to reduce that user's rights. Admin accounts ignore these flags.</div>
+    </div>
+    <div class="card" id="createUserCard">
+      <h2>Create user</h2>
+      <p class="muted" style="margin-top:0">Create the account and choose exactly what it can do. No separate default-permission setup is needed.</p>
+      <form id="userForm">
+        <div class="grid3">
+          <div><label>Username</label><input name="username" required minlength="3" autocomplete="off"></div>
+          <div><label>Email (optional)</label><input name="email" type="email"></div>
+          <div>
+            <label>Role</label>
+            <select name="role" id="createUserRole">
+              <option value="user">User</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Administrator (all permissions)</option>
+            </select>
+          </div>
+          <div><label>Password</label><input name="password" type="password" required minlength="4" autocomplete="new-password"></div>
+          <div><label>Confirm password</label><input name="confirm_password" type="password" required minlength="4" autocomplete="new-password"></div>
+        </div>
+        <h3 style="margin:20px 0 10px">Permissions for this user</h3>
+        <div class="row" id="newUserPermissions" style="gap:18px">
+          <label class="flag"><input type="checkbox" name="can_add_data" checked> Add data</label>
+          <label class="flag"><input type="checkbox" name="can_edit_data" checked> Edit data</label>
+          <label class="flag"><input type="checkbox" name="can_delete_data"> Delete data</label>
+          <label class="flag"><input type="checkbox" name="can_manage_users"> Manage users</label>
+        </div>
+        <div class="hint">Administrators always receive every permission. Managers default to manage + delete and can be adjusted before saving.</div>
+        <div class="row" style="margin-top:16px"><button class="btn" type="submit">Create user</button></div>
+      </form>
+    </div>
+  `);
+  document.getElementById('goCreateUser').addEventListener('click', () => {
+    document.getElementById('createUserCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.querySelector('#userForm input[name="username"]')?.focus();
+  });
+  const role = document.getElementById('createUserRole');
+  const applyRoleDefaults = () => {
+    const isAdmin = role.value === 'admin';
+    const boxes = document.querySelectorAll('#newUserPermissions input');
+    boxes.forEach(box => {
+      if (isAdmin) box.checked = true;
+      else if (box.name === 'can_manage_users' || box.name === 'can_delete_data') box.checked = role.value === 'manager';
+      else box.checked = true;
+      box.disabled = isAdmin;
+    });
+  };
+  role.addEventListener('change', applyRoleDefaults);
+  document.getElementById('userForm').addEventListener('submit', createUser);
+}
+async function saveUser(id) {
+  const user = users.find(u => u.id === id);
+  const payload = {};
+  document.querySelectorAll(`input[data-user="${id}"]`).forEach(box => { payload[box.dataset.field] = box.checked; });
+  try {
+    const updated = await req('PATCH', api(`/users/${id}/`), payload);
+    Object.assign(user, updated);
+    renderUsers(`Permissions updated for ${user.username}.`, 'ok');
+  } catch (error) { renderUsers(error.message, 'error'); }
+}
+async function resetPassword(id) {
+  const user = users.find(u => u.id === id);
+  const password = prompt(`New password for ${user.username}:`);
+  if (!password) return;
+  if (password.length < 4) { renderUsers('Password must be at least 4 characters.', 'error'); return; }
+  try {
+    await req('PATCH', api(`/users/${id}/`), { password, confirm_password: password });
+    renderUsers(`Password updated for ${user.username}.`, 'ok');
+  } catch (error) { renderUsers(error.message, 'error'); }
+}
+async function deleteUser(id) {
+  const user = users.find(u => u.id === id);
+  if (!confirm(`Delete user "${user.username}"? This cannot be undone.`)) return;
+  try {
+    await req('DELETE', api(`/users/${id}/`));
+    await loadUsers();
+    renderUsers('User deleted.', 'ok');
+  } catch (error) { renderUsers(error.message, 'error'); }
+}
+async function createUser(event) {
+  event.preventDefault();
+  const form = event.target;
+  const data = Object.fromEntries(new FormData(form).entries());
+  if (data.password !== data.confirm_password) {
+    renderUsers('Password and confirmation do not match.', 'error');
+    return;
+  }
+  data.can_add_data = form.elements.can_add_data.checked;
+  data.can_edit_data = form.elements.can_edit_data.checked;
+  data.can_delete_data = form.elements.can_delete_data.checked;
+  data.can_manage_users = form.elements.can_manage_users.checked;
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    await req('POST', api('/users/'), data);
+    await loadUsers();
+    renderUsers(`User "${data.username}" created with the selected permissions.`, 'ok');
+  } catch (error) {
+    button.disabled = false;
+    renderUsers(error.message, 'error');
+  }
+}
+
+/* ------------------------------ Branches & Zones --------------------------- */
+async function loadZonesTab(message = '', type = 'ok') {
+  await loadZonesData(true);
+  renderZonesTab(message, type);
+}
+
+function renderZonesTab(message = '', type = 'ok') {
+  const branchEditingRecord = branchEditing ? branchList.find(b => String(b.id) === String(branchEditing)) : null;
+  const zoneEditingRecord = zoneEditing ? zoneList.find(z => String(z.id) === String(zoneEditing)) : null;
+  const canEdit = !!(me && (me.is_admin || (me.permissions && me.permissions.edit)));
+  const canDelete = !!(me && (me.is_admin || (me.permissions && me.permissions.delete)));
+
+  const branchRows = branchList.map(branch => {
+    const count = zoneList.filter(zone => String(zone.zone) === String(branch.id)).length;
+    return `<tr>
+      <td>${branch.id}</td>
+      <td><strong>${escapeHtml(branch.name)}</strong></td>
+      <td>${escapeHtml(branch.description || '')}</td>
+      <td><span class="chip">${count}</span></td>
+      <td><div class="row" style="gap:6px">
+        ${canEdit ? `<button class="btn small ghost" data-edit-branch="${branch.id}">Edit</button>` : ''}
+        ${canDelete ? `<button class="btn small danger" data-delete-branch="${branch.id}">Delete</button>` : ''}
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  const zoneRows = zoneList.map(zone => {
+    const branch = branchList.find(item => String(item.id) === String(zone.zone));
+    return `<tr>
+      <td>${zone.id}</td>
+      <td><strong>${escapeHtml(zone.name)}</strong></td>
+      <td>${escapeHtml(branch ? branch.name : '')}</td>
+      <td>${escapeHtml(zone.description || '')}</td>
+      <td><div class="row" style="gap:6px">
+        ${canEdit ? `<button class="btn small ghost" data-edit-zone="${zone.id}">Edit</button>` : ''}
+        ${canDelete ? `<button class="btn small danger" data-delete-zone="${zone.id}">Delete</button>` : ''}
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  setContent(`
+    ${message ? alertBox(message, type) : ''}
+    <div class="card">
+      <h2>Branches</h2>
+      <p class="muted" style="margin-top:0">A Branch is the top level of the network. Every Branch can contain multiple Zones.
+      These branches are also used by the Branch &amp; Zone filter on the Network Point map.</p>
+      <form id="branchForm">
+        <input type="hidden" name="id" value="${branchEditingRecord ? branchEditingRecord.id : ''}">
+        <div class="grid">
+          <div><label>Branch name</label><input name="name" required maxlength="100" placeholder="Branch name" value="${escapeHtml(branchEditingRecord ? branchEditingRecord.name : '')}"></div>
+          <div><label>Description</label><input name="description" maxlength="200" placeholder="Optional description" value="${escapeHtml(branchEditingRecord ? (branchEditingRecord.description || '') : '')}"></div>
+        </div>
+        <div class="row" style="margin-top:16px">
+          <button class="btn" type="submit">${branchEditingRecord ? 'Save branch' : 'Add branch'}</button>
+          ${branchEditingRecord ? '<button class="btn ghost" type="button" id="branchCancel">Cancel edit</button>' : ''}
+        </div>
+      </form>
+      <div style="margin-top:22px;overflow-x:auto">
+        <table>
+          <thead><tr><th>ID</th><th>Branch</th><th>Description</th><th>Zones</th><th></th></tr></thead>
+          <tbody>${branchRows || '<tr><td colspan="5" class="muted">No branches yet. Add the first branch above.</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Zones</h2>
+      <p class="muted" style="margin-top:0">A Zone belongs to one Branch. Assign a Branch and Zone to every POP, TJ Box, Reseller and Client to filter the map in real time.</p>
+      <form id="zoneForm">
+        <input type="hidden" name="id" value="${zoneEditingRecord ? zoneEditingRecord.id : ''}">
+        <div class="grid">
+          <div><label>Zone name</label><input name="name" required maxlength="100" placeholder="Zone name" value="${escapeHtml(zoneEditingRecord ? zoneEditingRecord.name : '')}"></div>
+          <div><label>Branch</label>
+            <select name="branch" required>
+              <option value="">Select branch</option>
+              ${branchList.map(branch => `<option value="${branch.id}" ${zoneEditingRecord && String(zoneEditingRecord.zone) === String(branch.id) ? 'selected' : ''}>${escapeHtml(branch.name)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="full"><label>Description</label><input name="description" maxlength="200" placeholder="Optional description" value="${escapeHtml(zoneEditingRecord ? (zoneEditingRecord.description || '') : '')}"></div>
+        </div>
+        <div class="row" style="margin-top:16px">
+          <button class="btn" type="submit">${zoneEditingRecord ? 'Save zone' : 'Add zone'}</button>
+          ${zoneEditingRecord ? '<button class="btn ghost" type="button" id="zoneCancel">Cancel edit</button>' : ''}
+        </div>
+      </form>
+      <div style="margin-top:22px;overflow-x:auto">
+        <table>
+          <thead><tr><th>ID</th><th>Zone</th><th>Branch</th><th>Description</th><th></th></tr></thead>
+          <tbody>${zoneRows || '<tr><td colspan="5" class="muted">No zones yet.</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  `);
+
+  document.getElementById('branchForm').addEventListener('submit', saveBranch);
+  document.getElementById('zoneForm').addEventListener('submit', saveZone);
+  document.getElementById('branchCancel')?.addEventListener('click', () => {
+    branchEditing = null;
+    renderZonesTab();
+  });
+  document.getElementById('zoneCancel')?.addEventListener('click', () => {
+    zoneEditing = null;
+    renderZonesTab();
+  });
+  document.querySelectorAll('[data-edit-branch]').forEach(button => {
+    button.addEventListener('click', () => {
+      branchEditing = Number(button.dataset.editBranch);
+      zoneEditing = null;
+      renderZonesTab();
+      document.getElementById('branchForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+  document.querySelectorAll('[data-delete-branch]').forEach(button => {
+    button.addEventListener('click', () => deleteBranch(Number(button.dataset.deleteBranch)));
+  });
+  document.querySelectorAll('[data-edit-zone]').forEach(button => {
+    button.addEventListener('click', () => {
+      zoneEditing = Number(button.dataset.editZone);
+      branchEditing = null;
+      renderZonesTab();
+      document.getElementById('zoneForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+  document.querySelectorAll('[data-delete-zone]').forEach(button => {
+    button.addEventListener('click', () => deleteZone(Number(button.dataset.deleteZone)));
+  });
+}
+
+async function saveBranch(event) {
+  event.preventDefault();
+  const form = event.target;
+  const id = form.elements.id.value;
+  const payload = {
+    name: form.elements.name.value.trim(),
+    description: form.elements.description.value.trim(),
+  };
+  if (!payload.name) { renderZonesTab('Branch name is required.', 'error'); return; }
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    if (id) await req('PUT', api(`/zone/${id}/update/`), payload);
+    else await req('POST', api('/zone/create/'), payload);
+    branchEditing = null;
+    await loadZonesTab(id ? 'Branch updated.' : 'Branch added.', 'ok');
+    categoryZonesLoaded = false;
+  } catch (error) {
+    button.disabled = false;
+    renderZonesTab(error.message, 'error');
+  }
+}
+
+async function saveZone(event) {
+  event.preventDefault();
+  const form = event.target;
+  const id = form.elements.id.value;
+  const payload = {
+    name: form.elements.name.value.trim(),
+    description: form.elements.description.value.trim(),
+    zone: form.elements.branch.value ? Number(form.elements.branch.value) : null,
+  };
+  if (!payload.name) { renderZonesTab('Zone name is required.', 'error'); return; }
+  if (!payload.zone) { renderZonesTab('Choose a branch.', 'error'); return; }
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    if (id) await req('PUT', api(`/subzone/${id}/update/`), payload);
+    else await req('POST', api('/subzone/create/'), payload);
+    zoneEditing = null;
+    await loadZonesTab(id ? 'Zone updated.' : 'Zone added.', 'ok');
+    categoryZonesLoaded = false;
+  } catch (error) {
+    button.disabled = false;
+    renderZonesTab(error.message, 'error');
+  }
+}
+
+async function deleteBranch(id) {
+  if (!confirm('Delete this branch? All of its zones and assignments will also be removed.')) return;
+  try {
+    await req('DELETE', api(`/zone/${id}/delete/`));
+    branchEditing = null;
+    zoneEditing = null;
+    await loadZonesTab('Branch deleted.', 'ok');
+    categoryZonesLoaded = false;
+  } catch (error) { renderZonesTab(error.message, 'error'); }
+}
+async function deleteZone(id) {
+  if (!confirm('Delete this zone?')) return;
+  try {
+    await req('DELETE', api(`/subzone/${id}/delete/`));
+    zoneEditing = null;
+    await loadZonesTab('Zone deleted.', 'ok');
+    categoryZonesLoaded = false;
+  } catch (error) { renderZonesTab(error.message, 'error'); }
+}
+
+/* ------------------------------ Categories --------------------------------- */
+const SYSTEM_CATEGORY_DEFS = {
+  POP: { list: '/pop/', create: '/pop/create/', update: (id) => `/pop/${id}/update/`, remove: (id) => `/pop/${id}/delete/`, marker: 'POP', popType: true, mobile: false },
+  CLIENT: { list: '/client/', create: '/client/create/', update: (id) => `/client/${id}/update/`, remove: (id) => `/client/${id}/delete/`, marker: 'CLIENT', mobile: true },
+  TJ_BOX: { list: '/tjbox/', create: '/tjbox/create/', update: (id) => `/tjbox/${id}/update/`, remove: (id) => `/tjbox/${id}/delete/`, marker: 'TJ_BOX', mobile: false },
+  RESELLER: { list: '/reseller/', create: '/reseller/create/', update: (id) => `/reseller/${id}/update/`, remove: (id) => `/reseller/${id}/delete/`, marker: 'RESELLER', mobile: true },
+};
+
+function userCan(permission) {
+  return !!(me && (me.is_admin || (me.permissions && me.permissions[permission])));
+}
+function branchName(id) {
+  const branch = branchList.find(item => String(item.id) === String(id));
+  return branch ? branch.name : '';
+}
+function zoneName(id) {
+  const zone = zoneList.find(item => String(item.id) === String(id));
+  return zone ? zone.name : '';
+}
+function branchOptions(selected = '') {
+  return '<option value="">All branches</option>' + branchList.map(branch =>
+    `<option value="${branch.id}" ${String(selected) === String(branch.id) ? 'selected' : ''}>${escapeHtml(branch.name)}</option>`
+  ).join('');
+}
+function zoneOptions(selected = '', branchId = '') {
+  const list = branchId
+    ? zoneList.filter(zone => String(zone.zone) === String(branchId))
+    : zoneList;
+  return '<option value="">All zones</option>' + list.map(zone =>
+    `<option value="${zone.id}" ${String(selected) === String(zone.id) ? 'selected' : ''}>${escapeHtml(zone.name)}</option>`
+  ).join('');
+}
+function currentCategory() {
+  return categoryList.find(category => category.key === categoryType) || categoryList[0] || null;
+}
+function currentCategoryDef(category) {
+  return category && category.is_system ? SYSTEM_CATEGORY_DEFS[category.key] : null;
+}
+function validHex(value) {
+  return /^#[0-9a-fA-F]{6}$/.test(String(value || '')) ? String(value) : '#2185d0';
+}
+
+async function loadCategoryData() {
+  await loadZonesData();
+  categoryList = await req('GET', api('/network-category/'));
+  if (!categoryList.length) {
+    categoryType = '';
+    categoryItems = [];
+    return;
+  }
+  if (!categoryList.some(category => category.key === categoryType)) {
+    categoryType = categoryList[0].key;
+  }
+  const category = currentCategory();
+  const def = currentCategoryDef(category);
+  const url = def ? def.list : `/custom-point/?category=${category.id}`;
+  categoryItems = await req('GET', api(url));
+}
+
+function categoryDefinitionForm() {
+  const editing = categoryDefinitionEditing
+    ? categoryList.find(category => String(category.id) === String(categoryDefinitionEditing))
+    : null;
+  const color = validHex(editing ? editing.color : '#2185d0');
+  return `
+    <div class="card" id="categoryDefinitionCard">
+      <h2>${editing ? `Edit ${escapeHtml(editing.label)} category` : 'Add network category'}</h2>
+      <p class="muted" style="margin-top:0">${editing && editing.is_system
+        ? 'This is a built-in category. You can rename it and change its colour/icon. Its records stay in the existing table.'
+        : 'New categories get their own records, add/edit/delete form and map markers on Network Point.'}</p>
+      <form id="categoryDefinitionForm">
+        <input type="hidden" name="category_id" value="${editing ? editing.id : ''}">
+        <div class="grid3">
+          <div><label>Category name</label><input name="label" required maxlength="80" value="${escapeHtml(editing ? editing.label : '')}" placeholder="e.g. IPTV Service"></div>
+          <div><label>Icon name</label><input name="icon" maxlength="40" value="${escapeHtml(editing ? editing.icon : 'tag')}" placeholder="tag"></div>
+          <div>
+            <label>Colour</label>
+            <div class="color-input-row">
+              <input type="color" id="categoryColorPicker" value="${color}" aria-label="Category colour">
+              <input name="color" maxlength="7" value="${color}" placeholder="#2185d0">
+            </div>
+          </div>
+          <div class="full"><label>Description (optional)</label><input name="description" maxlength="255" value="${escapeHtml(editing ? (editing.description || '') : '')}" placeholder="What does this category identify?"></div>
+        </div>
+        <div class="hint">Icon examples: tag, user, shop, building, inbox. Colour must be a six-digit hex value.</div>
+        <div class="row">
+          <button class="btn" type="submit">${editing ? 'Save category' : 'Add category'}</button>
+          <button class="btn ghost" type="button" id="categoryDefinitionCancel">Cancel</button>
+        </div>
+      </form>
+    </div>`;
+}
+
+function renderCategories(message = '', type = 'ok') {
+  const category = currentCategory();
+  const def = currentCategoryDef(category);
+  const canAdd = userCan('add');
+  const canEdit = userCan('edit');
+  const canDelete = userCan('delete');
+  const editing = categoryEditing ? categoryItems.find(item => String(item.id) === String(categoryEditing)) : null;
+  const search = categorySearch.trim().toLowerCase();
+  const visible = (categoryItems || []).filter(item => {
+    if (categoryFilterZone && String(item.zone) !== String(categoryFilterZone)) return false;
+    if (categoryFilterSubzone && String(item.subzone) !== String(categoryFilterSubzone)) return false;
+    if (!search) return true;
+    return [item.identifier, item.name, item.address, item.mobile_number, item.id]
+      .some(value => String(value || '').toLowerCase().includes(search));
+  });
+  const pageRows = visible.slice(0, 300);
+  const rows = pageRows.map(item => `
+    <tr>
+      <td>${item.id}</td>
+      <td>${escapeHtml(item.identifier || '')}</td>
+      <td><strong>${escapeHtml(item.name || '')}</strong></td>
+      <td>${escapeHtml(branchName(item.zone))}${item.subzone ? `<div class="muted">${escapeHtml(zoneName(item.subzone))}</div>` : ''}</td>
+      <td>${escapeHtml(item.address || '')}${item.mobile_number ? `<div class="muted">${escapeHtml(item.mobile_number)}</div>` : ''}</td>
+      <td>
+        <div class="row" style="gap:6px;flex-wrap:nowrap">
+          ${canEdit ? `<button class="btn small ghost" data-edit-category="${item.id}">Edit</button>` : ''}
+          ${canDelete ? `<button class="btn small danger" data-delete-category="${item.id}">Delete</button>` : ''}
+        </div>
+      </td>
+    </tr>`).join('');
+
+  const cards = categoryList.map(item => {
+    const active = item.key === categoryType;
+    return `<div class="category-card-wrap ${active ? 'active' : ''}">
+      <button type="button" class="category-card ${active ? 'active' : ''}" data-category="${escapeHtml(item.key)}">
+        <div class="cat-label"><span class="cat-dot" style="background:${validHex(item.color)}"></span>${escapeHtml(item.label)}
+          ${item.is_system ? '' : '<span class="cat-badge">custom</span>'}</div>
+        <div class="cat-count">${item.count === undefined || item.count === null ? 'â€”' : item.count}</div>
+        ${item.description ? `<div class="cat-desc">${escapeHtml(item.description)}</div>` : ''}
+      </button>
+      <div class="category-card-actions">
+        <button class="btn small ghost" type="button" data-edit-definition="${item.id}">Edit</button>
+        <button class="btn small danger" type="button" data-delete-definition="${item.id}">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const recordsCard = category ? `
+    <div class="card">
+      <h2>${escapeHtml(category.label)} records</h2>
+      <p class="muted" style="margin-top:0">${def
+        ? 'Built-in category: records are stored in its existing table. Use the filters below to edit the Branch / Zone assignment.'
+        : 'Custom category: these records are stored in the shared custom-point table and appear as map markers.'}</p>
+      <div class="row" style="margin-bottom:14px">
+        <div class="grow"><label>Search</label><input id="categorySearch" placeholder="ID, name, addressâ€¦" value="${escapeHtml(categorySearch)}"></div>
+        <div class="grow"><label>Filter branch</label><select id="categoryFilterZone">${branchOptions(categoryFilterZone)}</select></div>
+        <div class="grow"><label>Filter zone</label><select id="categoryFilterSubzone">${zoneOptions(categoryFilterSubzone, categoryFilterZone)}</select></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn ghost" type="button" id="goZones">Manage branches &amp; zones</button></div>
+      </div>
+      ${canAdd || editing ? `
+      <form id="categoryForm" class="category-form-card">
+        <input type="hidden" name="record_id" value="${editing ? editing.id : ''}">
+        <h3>${editing ? `Edit ${escapeHtml(category.label)}` : `Add ${escapeHtml(category.label)}`}</h3>
+        <div class="grid3">
+          <div><label>Identifier</label><input name="identifier" required maxlength="100" value="${escapeHtml(editing ? (editing.identifier || '') : '')}" ${editing && def ? 'disabled' : ''}></div>
+          <div><label>Name</label><input name="name" required maxlength="100" value="${escapeHtml(editing ? (editing.name || '') : '')}"></div>
+          ${def && def.mobile || !def ? `<div><label>Mobile</label><input name="mobile_number" maxlength="100" value="${escapeHtml(editing ? (editing.mobile_number || '') : '')}"></div>` : ''}
+          ${def && def.popType ? `<div><label>POP type</label><input name="pop_type" list="managementPopTypes" required maxlength="100" placeholder="OLT, Switch, ONU, BOX or any device" value="${escapeHtml(editing ? (editing.pop_type || '') : '')}"><datalist id="managementPopTypes"><option value="OLT"></option><option value="Switch"></option><option value="ONU"></option><option value="BOX"></option><option value="Router"></option><option value="GPON"></option><option value="EPON"></option><option value="Media Converter"></option></datalist></div>` : ''}
+          <div><label>Branch</label><select name="zone">${branchOptions(editing ? editing.zone : '')}</select></div>
+          <div><label>Zone</label><select name="subzone">${zoneOptions(editing ? editing.subzone : '', editing ? editing.zone : '')}</select></div>
+          <div><label>Address</label><input name="address" maxlength="200" value="${escapeHtml(editing ? (editing.address || '') : '')}" ${def ? 'required' : ''}></div>
+          ${!editing || !def ? `
+          <div><label>Latitude</label><input name="latitude" type="number" step="any" required value="${editing ? editing.latitude : ''}"></div>
+          <div><label>Longitude</label><input name="longitude" type="number" step="any" required value="${editing ? editing.longitude : ''}"></div>
+          ` : ''}
+          ${!def ? `
+          <div class="full"><label>Notes</label><input name="notes" value="${escapeHtml(editing ? (editing.notes || '') : '')}"></div>
+          <div class="full"><label>Description</label><input name="description" value="${escapeHtml(editing ? (editing.description || '') : '')}"></div>
+          ` : ''}
+        </div>
+        <div class="hint">${editing ? 'Latitude and longitude are kept for custom categories; built-in records keep their existing map position.' : 'For a live GPS position, open Network Point and use the Live location button.'}</div>
+        <div class="row">
+          <button class="btn" type="submit">${editing ? 'Save changes' : 'Add record'}</button>
+          ${editing ? '<button class="btn ghost" type="button" id="categoryCancel">Cancel edit</button>' : ''}
+        </div>
+      </form>` : '<div class="hint" style="margin:10px 0">You do not have permission to add records.</div>'}
+      <h3 style="margin:20px 0 8px">${escapeHtml(category.label)} records <span class="muted">(${visible.length}${visible.length !== categoryItems.length ? ` of ${categoryItems.length}` : ''})</span></h3>
+      ${pageRows.length < visible.length ? `<div class="hint" style="margin-bottom:8px">Showing the first ${pageRows.length} matches. Use search or filters to narrow the list.</div>` : ''}
+      <div class="table-wrap">
+        <table><thead><tr><th>ID</th><th>Identifier</th><th>Name</th><th>Branch / Zone</th><th>Address / Mobile</th><th>Actions</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="6" class="muted">No records found for this category and filter.</td></tr>'}</tbody></table>
+      </div>
+    </div>` : `<div class="card"><h2>No categories yet</h2><p class="muted">Add a category above, or restore the default POP, Client, TJ Box and Reseller categories.</p></div>`;
+
+  setContent(`
+    ${message ? alertBox(message, type) : ''}
+    <div class="card" style="padding-bottom:12px">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div>
+          <h2 style="margin:0 0 4px">Network Point categories</h2>
+          <p class="muted" style="margin:0">Categories are the Network Point models. Add a new service category, or edit/delete an existing one. Built-in categories protect their records until those records are removed.</p>
+        </div>
+        <button class="btn ghost" type="button" id="restoreCategories">Restore defaults</button>
+      </div>
+    </div>
+    <div class="category-grid">
+      ${cards}
+      <button type="button" class="category-card add-category" id="addCategoryCard">+ Add category</button>
+    </div>
+    ${categoryDefinitionCreating || categoryDefinitionEditing !== null ? categoryDefinitionForm() : ''}
+    ${recordsCard}
+  `);
+
+  document.getElementById('addCategoryCard').addEventListener('click', () => {
+    categoryDefinitionCreating = true;
+    categoryDefinitionEditing = null;
+    renderCategories();
+    document.getElementById('categoryDefinitionCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.querySelector('#categoryDefinitionForm input[name="label"]')?.focus();
+  });
+  document.getElementById('restoreCategories').addEventListener('click', restoreDefaultCategories);
+  document.getElementById('categoryDefinitionCancel')?.addEventListener('click', () => {
+    categoryDefinitionCreating = false;
+    categoryDefinitionEditing = null;
+    renderCategories();
+  });
+  document.getElementById('categoryDefinitionForm')?.addEventListener('submit', saveCategoryDefinition);
+  const colorPicker = document.getElementById('categoryColorPicker');
+  const colorText = document.querySelector('#categoryDefinitionForm input[name="color"]');
+  if (colorPicker && colorText) {
+    colorPicker.addEventListener('input', () => { colorText.value = colorPicker.value; });
+    colorText.addEventListener('input', () => { if (validHex(colorText.value) === colorText.value) colorPicker.value = colorText.value; });
+  }
+
+  document.querySelectorAll('[data-category]').forEach(button => {
+    button.addEventListener('click', async () => {
+      categoryType = button.dataset.category;
+      categoryEditing = null;
+      categoryDefinitionCreating = false;
+      categoryDefinitionEditing = null;
+      categoryFilterZone = '';
+      categoryFilterSubzone = '';
+      categorySearch = '';
+      try { await loadCategoryData(); renderCategories(); }
+      catch (error) { renderCategories(error.message, 'error'); }
+    });
+  });
+  document.querySelectorAll('[data-edit-definition]').forEach(button => {
+    button.addEventListener('click', () => {
+      categoryDefinitionEditing = Number(button.dataset.editDefinition);
+      categoryDefinitionCreating = false;
+      renderCategories();
+      document.getElementById('categoryDefinitionCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.querySelector('#categoryDefinitionForm input[name="label"]')?.focus();
+    });
+  });
+  document.querySelectorAll('[data-delete-definition]').forEach(button => {
+    button.addEventListener('click', () => deleteCategoryDefinition(Number(button.dataset.deleteDefinition)));
+  });
+
+  const searchInput = document.getElementById('categorySearch');
+  searchInput?.addEventListener('input', event => {
+    categorySearch = event.target.value;
+    clearTimeout(categorySearchTimer);
+    categorySearchTimer = setTimeout(() => {
+      categorySearchFocus = true;
+      renderCategories();
+    }, 180);
+  });
+  document.getElementById('categoryFilterZone')?.addEventListener('change', event => {
+    categoryFilterZone = event.target.value;
+    categoryFilterSubzone = '';
+    renderCategories();
+  });
+  document.getElementById('categoryFilterSubzone')?.addEventListener('change', event => {
+    categoryFilterSubzone = event.target.value;
+    renderCategories();
+  });
+  document.getElementById('goZones')?.addEventListener('click', () => showTab('zones'));
+  document.getElementById('categoryCancel')?.addEventListener('click', () => {
+    categoryEditing = null;
+    renderCategories();
+  });
+  document.getElementById('categoryForm')?.addEventListener('submit', saveCategoryRecord);
+  document.querySelectorAll('[data-edit-category]').forEach(button => {
+    button.addEventListener('click', () => {
+      categoryEditing = Number(button.dataset.editCategory);
+      renderCategories();
+      document.getElementById('categoryForm')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+  document.querySelectorAll('[data-delete-category]').forEach(button => {
+    button.addEventListener('click', () => deleteCategoryRecord(Number(button.dataset.deleteCategory)));
+  });
+
+  if (editing && def && def.popType) {
+    const form = document.getElementById('categoryForm');
+    if (form) form.elements.pop_type.value = editing.pop_type || 'OLT';
+  }
+  const form = document.getElementById('categoryForm');
+  if (form) {
+    const branchSelect = form.elements.zone;
+    branchSelect.addEventListener('change', () => {
+      form.elements.subzone.innerHTML = zoneOptions('', branchSelect.value);
+    });
+  }
+  if (categorySearchFocus) {
+    categorySearchFocus = false;
+    const input = document.getElementById('categorySearch');
+    if (input) {
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+  }
+}
+
+async function saveCategoryDefinition(event) {
+  event.preventDefault();
+  const form = event.target;
+  const id = form.elements.category_id.value;
+  const payload = {
+    label: form.elements.label.value.trim(),
+    icon: form.elements.icon.value.trim() || 'tag',
+    color: form.elements.color.value.trim() || '#2185d0',
+    description: form.elements.description.value.trim(),
+  };
+  if (!payload.label) { renderCategories('Category name is required.', 'error'); return; }
+  if (!/^#[0-9a-fA-F]{6}$/.test(payload.color)) { renderCategories('Use a six-digit colour such as #2185d0.', 'error'); return; }
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const saved = id
+      ? await req('PATCH', api(`/network-category/${id}/update/`), payload)
+      : await req('POST', api('/network-category/create/'), payload);
+    categoryDefinitionCreating = false;
+    categoryDefinitionEditing = null;
+    categoryType = saved.key;
+    categoryEditing = null;
+    await loadCategoryData();
+    renderCategories(id ? `${saved.label} category updated.` : `${saved.label} category added.`, 'ok');
+  } catch (error) {
+    button.disabled = false;
+    renderCategories(error.message, 'error');
+  }
+}
+
+async function deleteCategoryDefinition(id) {
+  const category = categoryList.find(item => String(item.id) === String(id));
+  if (!category) return;
+  const warning = category.is_system
+    ? `Delete the built-in "${category.label}" category? Its ${category.count} record(s) must be removed first.`
+    : `Delete the "${category.label}" category and all of its records? This cannot be undone.`;
+  if (!confirm(warning)) return;
+  try {
+    await req('DELETE', api(`/network-category/${id}/delete/`));
+    categoryDefinitionEditing = null;
+    categoryDefinitionCreating = false;
+    categoryEditing = null;
+    if (categoryType === category.key) categoryType = '';
+    await loadCategoryData();
+    renderCategories(`Category "${category.label}" deleted.`, 'ok');
+  } catch (error) { renderCategories(error.message, 'error'); }
+}
+
+async function restoreDefaultCategories() {
+  try {
+    const result = await req('POST', api('/network-category/restore/'), {});
+    await loadCategoryData();
+    const created = result && result.created && result.created.length;
+    renderCategories(created ? `${created} default categor${created === 1 ? 'y' : 'ies'} restored.` : 'All default categories are already present.', 'ok');
+  } catch (error) { renderCategories(error.message, 'error'); }
+}
+
+async function saveCategoryRecord(event) {
+  event.preventDefault();
+  const form = event.target;
+  const category = currentCategory();
+  if (!category) return;
+  const def = currentCategoryDef(category);
+  const recordId = form.elements.record_id.value;
+  const name = form.elements.name.value.trim();
+  const identifier = form.elements.identifier.value.trim();
+  const zone = form.elements.zone.value ? Number(form.elements.zone.value) : null;
+  const subzone = form.elements.subzone.value ? Number(form.elements.subzone.value) : null;
+  if (!name) { renderCategories('Name is required.', 'error'); return; }
+  if (!identifier) { renderCategories('Identifier is required.', 'error'); return; }
+
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    if (def) {
+      const payload = { name, zone, subzone };
+      if (def.mobile) {
+        const mobile = form.elements.mobile_number.value.trim();
+        if (mobile || !recordId) payload.mobile_number = mobile;
+      }
+      if (def.popType) payload.pop_type = form.elements.pop_type.value;
+      if (recordId) {
+        payload.marker = { address: form.elements.address.value.trim() };
+        await req('PUT', api(def.update(recordId)), payload);
+      } else {
+        const address = form.elements.address.value.trim();
+        const latitude = Number(form.elements.latitude.value);
+        const longitude = Number(form.elements.longitude.value);
+        if (!address) { throw new Error('Address is required.'); }
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) { throw new Error('Latitude and longitude are required.'); }
+        payload.identifier = identifier;
+        payload.marker = {
+          type: def.marker,
+          latitude,
+          longitude,
+          address,
+          notes: '',
+          description: '',
+        };
+        await req('POST', api(def.create), payload);
+      }
+    } else {
+      const latitude = Number(form.elements.latitude.value);
+      const longitude = Number(form.elements.longitude.value);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) { throw new Error('Latitude and longitude are required.'); }
+      const payload = {
+        category: category.id,
+        identifier,
+        name,
+        mobile_number: form.elements.mobile_number.value.trim(),
+        address: form.elements.address.value.trim(),
+        notes: form.elements.notes.value.trim(),
+        description: form.elements.description.value.trim(),
+        latitude,
+        longitude,
+        zone,
+        subzone,
+      };
+      if (recordId) await req('PUT', api(`/custom-point/${recordId}/update/`), payload);
+      else await req('POST', api('/custom-point/create/'), payload);
+    }
+    categoryEditing = null;
+    await loadCategoryData();
+    renderCategories(recordId ? `${category.label} record updated.` : `${category.label} record added.`, 'ok');
+  } catch (error) {
+    button.disabled = false;
+    renderCategories(error.message, 'error');
+  }
+}
+
+async function deleteCategoryRecord(id) {
+  const category = currentCategory();
+  if (!category) return;
+  const def = currentCategoryDef(category);
+  const item = categoryItems.find(row => String(row.id) === String(id));
+  if (!item) return;
+  if (!confirm(`Delete ${category.label} "${item.name}"? This cannot be undone.`)) return;
+  try {
+    const url = def ? def.remove(id) : `/custom-point/${id}/delete/`;
+    await req('DELETE', api(url));
+    categoryEditing = null;
+    await loadCategoryData();
+    renderCategories(`${category.label} record deleted.`, 'ok');
+  } catch (error) { renderCategories(error.message, 'error'); }
+}
+
+/* ------------------------------ Database ----------------------------------- */
+function renderDatabase(message = '', type = 'ok') {
+  const db = dbInfo || {};
+  setContent(`
+    ${message ? alertBox(message, type) : ''}
+    <div class="card">
+      <h2>Current database</h2>
+      <p class="muted" style="margin-top:0">
+        Engine: <strong>MySQL</strong>
+        &middot; ${escapeHtml(db.user)}@${escapeHtml(db.host)}:${escapeHtml(db.port)}/${escapeHtml(db.name)}
+      </p>
+      <div class="hint" style="margin-top:10px">Configuration file: ${escapeHtml(db.config_path || '')}</div>
+    </div>
+    <div class="card">
+      <h2>MySQL connection</h2>
+      <div class="alert info">Saving writes the configuration and asks you to restart. On restart the app applies
+      migrations and recreates your administrator account, so your current password keeps working.</div>
+      <form id="dbForm">
+        <input type="hidden" name="db_engine" value="mysql">
+        <div class="grid">
+          <div><label>Database name</label><input name="db_name" value="${escapeHtml(db.name || '')}"></div>
+          <div><label>User</label><input name="db_user" value="${escapeHtml(db.user || 'root')}"></div>
+          <div><label>Password</label><input name="db_password" type="password"></div>
+          <div><label>Host</label><input name="db_host" value="${escapeHtml(db.host || '127.0.0.1')}"></div>
+          <div><label>MySQL port</label><input name="db_port" value="${escapeHtml(db.port || '3306')}"></div>
+          <div style="display:flex;align-items:flex-end"><button type="button" class="btn ghost" id="testDb">Test connection</button></div>
+        </div>
+        <div id="dbTest" class="status"></div>
+        <div class="row" style="margin-top:16px"><button class="btn" type="submit">Save database configuration</button></div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Export SQL backup</h2>
+      <p class="muted" style="margin-top:0">Download a complete MySQL dump of the current database.</p>
+      <div class="row">
+        <button class="btn" type="button" id="exportDb">Download .sql backup</button>
+        <div class="status" id="exportStatus"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Import SQL</h2>
+      <form id="importForm"><div class="row">
+        <div class="grow"><label>SQL file</label><input type="file" name="sql_file" accept=".sql" required></div>
+        <button class="btn ghost" type="submit">Import</button>
+      </div></form>
+      <div class="hint">Runs against the currently active database. Use <code>.sql</code> dumps.</div>
+    </div>
+  `);
+  document.getElementById('exportDb')?.addEventListener('click', async () => {
+    const button = document.getElementById('exportDb');
+    const status = document.getElementById('exportStatus');
+    button.disabled = true;
+    status.textContent = 'Preparing backupâ€¦';
+    status.className = 'status';
+    try {
+      const response = await fetch(api('/database/export/'), { headers: headers(false), cache: 'no-store' });
+      if (!response.ok) {
+        let message = response.statusText;
+        try { const data = await response.json(); message = data.detail || message; } catch (e) {}
+        throw new Error(message);
+      }
+      const blob = await response.blob();
+      const disposition = response.headers.get('Content-Disposition') || '';
+      const match = /filename="?([^"]+)"?/.exec(disposition);
+      const filename = match ? match[1] : 'database-backup.sql';
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      status.textContent = 'Backup downloaded.';
+      status.className = 'status ok';
+    } catch (error) {
+      status.textContent = error.message;
+      status.className = 'status err';
+    } finally {
+      button.disabled = false;
+    }
+  });
+  document.getElementById('testDb')?.addEventListener('click', async () => {
+    const form = document.getElementById('dbForm');
+    const data = Object.fromEntries(new FormData(form).entries());
+    const status = document.getElementById('dbTest');
+    status.textContent = 'Testingâ€¦'; status.className = 'status';
+    try {
+      const result = await req('POST', api('/database/test/'), data);
+      status.textContent = result.message; status.className = 'status ok';
+    } catch (error) { status.textContent = error.message; status.className = 'status err'; }
+  });
+  document.getElementById('dbForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    try {
+      const result = await req('POST', api('/database/config/'), formData, true);
+      renderDatabase(result.message, 'ok');
+    } catch (error) { renderDatabase(error.message, 'error'); }
+  });
+  document.getElementById('importForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    try {
+      const result = await req('POST', api('/database/import/'), formData, true);
+      renderDatabase(result.message, result.ok ? 'ok' : 'error');
+    } catch (error) { renderDatabase(error.message, 'error'); }
+  });
+}
+
+/* -------------------------------- About ------------------------------------ */
+function renderAbout() {
+  setContent(`
+    <div class="card">
+      <h2>About the project</h2>
+      <p class="muted" style="margin-top:0">fiber-map is an optical-fiber network management application.
+      It keeps every network point on one map and connects Branches, Zones, POPs, TJ Boxes, Resellers and Clients
+      with the cables and cores that link them.</p>
+      <ul class="about-list">
+        <li>Interactive satellite / street map with POP, TJ Box, Reseller and Client markers.</li>
+        <li>Branch and Zone structure with live filtering on the Network Point map and lists.</li>
+        <li>Network categories for POP, Client, TJ Box and Reseller records.</li>
+        <li>Cable, core, splitter and connection management for fiber planning.</li>
+        <li>User accounts with granular add / edit / delete / manage permissions.</li>
+        <li>MySQL database configuration, SQL import and full SQL backup export.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>Technology</h2>
+      <dl class="about-kv">
+        <dt>Backend</dt><dd>Django 5, Django REST Framework</dd>
+        <dt>Frontend</dt><dd>React 18, Redux Toolkit, Semantic UI React, Leaflet</dd>
+        <dt>Database</dt><dd>MySQL / MariaDB (utf8mb4)</dd>
+        <dt>Maps</dt><dd>Leaflet with Google Satellite (default) and Google Streets</dd>
+        <dt>Application</dt><dd>fiber-map - Management panel</dd>
+        <dt>Version</dt><dd>1.1 - October 2026</dd>
+      </dl>
+    </div>
+    <div class="card">
+      <h2>About the modifier</h2>
+      <div class="modifier">
+        <div class="avatar">J</div>
+        <div>
+          <div style="font-weight:700;font-size:16px">johirxofficial</div>
+          <div class="muted">Project modifier Â· Development, database integration and UI improvements</div>
+        </div>
+      </div>
+      <p class="muted" style="margin:16px 0 0">This build was modified and prepared by <strong>johirxofficial</strong>.
+      It includes the Branch/Zone filtering workflow, management-page consolidation, user permissions,
+      MySQL-only configuration and a complete deployment package for Linux servers.</p>
+    </div>
+  `);
+}
+
+/* ------------------------------- Routing ----------------------------------- */
+const renderers = {
+  site: renderSite,
+  users: renderUsers,
+  categories: renderCategories,
+  zones: renderZonesTab,
+  database: renderDatabase,
+  about: renderAbout,
+};
+const TABS = ['site', 'users', 'categories', 'zones', 'database', 'about'];
+
+function updateNav() {
+  document.querySelectorAll('.site-menu [data-nav]').forEach(item => {
+    item.classList.toggle('active', item.dataset.nav === 'management');
+  });
+}
+async function showTab(name) {
+  if (!canManage) return;
+  if (name === 'create-user') name = 'users';
+  if (!renderers[name]) name = 'site';
+  document.querySelectorAll('.tab').forEach(tab => tab.classList.toggle('active', tab.dataset.tab === name));
+  updateNav();
+  const url = new URL(window.location.href);
+  if (name === 'site') url.searchParams.delete('tab'); else url.searchParams.set('tab', name);
+  window.history.replaceState({}, '', url.pathname + url.search);
+  try {
+    if (name === 'site') { await loadSite(); renderSite(); }
+    if (name === 'users') { await loadUsers(); renderUsers(); }
+    if (name === 'categories') { await loadCategoryData(); renderCategories(); }
+    if (name === 'zones') { await loadZonesTab(); }
+    if (name === 'database') { await Promise.all([loadSite(), loadDbInfo()]); renderDatabase(); }
+    if (name === 'about') { renderAbout(); }
+  } catch (error) { setContent(alertBox(error.message, 'error')); }
+}
+document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => showTab(tab.dataset.tab)));
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  try { await req('POST', api('/logout/'), {}); } catch (e) {}
+  localStorage.removeItem('token');
+  window.location.href = '/login';
+});
+
+(async function start() {
+  loadPublicBranding();
+  if (!await checkAccess()) return;
+  const params = new URLSearchParams(window.location.search);
+  const requested = params.get('tab');
+  const initial = requested === 'create-user'
+    ? 'users'
+    : (TABS.includes(requested) ? requested : 'site');
+  await showTab(initial);
+})();
+</script>
+</body>
+</html>

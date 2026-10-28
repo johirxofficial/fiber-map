@@ -1,0 +1,7 @@
+# fiber-map - Python dependencies (MySQL / MariaDB)
+Django==5.0.14
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+mysqlclient==2.3.0
+whitenoise==6.6.0
+waitress==3.0.2

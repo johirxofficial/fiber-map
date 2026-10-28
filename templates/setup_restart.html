@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Restart required</title>
+<style>
+  body { margin:0; min-height:100vh; display:grid; place-items:center; font-family:Inter,Segoe UI,Arial,sans-serif;
+         background:linear-gradient(135deg,#eef4ff,#f8fafc 60%,#eefaf7); color:#0f172a; }
+  .card { max-width:660px; width:calc(100% - 36px); background:#fff; border:1px solid #e2e8f0; border-radius:20px;
+          padding:34px; box-shadow:0 24px 60px rgba(15,23,42,.08); }
+  .badge { display:inline-block; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;
+           padding:6px 10px; border-radius:999px; font-size:12px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
+  h1 { margin:16px 0 8px; font-size:26px; }
+  p { color:#475569; line-height:1.6; }
+  code { display:block; background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:12px;
+         font-family:Consolas,monospace; font-size:13px; overflow:auto; margin:10px 0 18px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+  a.button, button { background:#2563eb; color:#fff; border:0; border-radius:10px; padding:11px 18px;
+          font:inherit; font-weight:700; text-decoration:none; cursor:pointer; }
+  a.ghost { background:#fff; color:#0f172a; border:1px solid #cbd5e1; }
+  .status { margin-top:16px; font-size:13px; color:#64748b; }
+  .ok { color:#047857; font-weight:700; }
+  .err { color:#b91c1c; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <span class="badge">Database configuration saved</span>
+    <h1>Restart the server to finish</h1>
+    <p>
+      The app is configured for <strong>{{ db_engine|default:"MySQL" }}</strong> on port
+      <strong>{{ port }}</strong>. Stop the current server and start it again so Django can
+      connect to the new database, run migrations and create your administrator account.
+    </p>
+    <p>Run this from the project folder:</p>
+    <code>.venv\Scripts\python.exe run.py</code>
+    <p>or simply double-click <strong>run.bat</strong>.</p>
+    <div class="row">
+      <button id="checkBtn">I have restarted — check now</button>
+      <a class="button ghost" href="/setup?restart=1">Reload this page</a>
+    </div>
+    <div class="status" id="status">Waiting for the server to finish setup…</div>
+  </div>
+<script>
+(function () {
+  const status = document.getElementById('status');
+  const button = document.getElementById('checkBtn');
+  async function check(manual) {
+    if (manual) status.textContent = 'Checking…';
+    try {
+      const response = await fetch('/api/setup/status/', { cache: 'no-store' });
+      const data = await response.json();
+      if (data.setup_completed) {
+        status.className = 'status ok';
+        status.textContent = 'Setup complete. Redirecting to sign in…';
+        setTimeout(() => { window.location.href = '/login?setup=done'; }, 800);
+        return;
+      }
+      if (data.restart_required) {
+        status.className = 'status';
+        status.textContent = manual
+          ? 'The new configuration is not active yet. Stop the server, run run.bat, then try again.'
+          : 'Waiting for restart…';
+      } else {
+        status.className = 'status err';
+        status.textContent = 'Setup is still incomplete. Go back to /setup to finish it.';
+      }
+    } catch (error) {
+      status.className = 'status err';
+      status.textContent = 'Server is restarting or unreachable. Retrying…';
+    }
+  }
+  button.addEventListener('click', () => check(true));
+  check(false);
+  setInterval(() => check(false), 4000);
+})();
+</script>
+</body>
+</html>

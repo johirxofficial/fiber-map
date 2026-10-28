@@ -1,0 +1,179 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f7f8fa;
+  color: #111827;
+  font-family: Lato, "Helvetica Neue", Arial, Helvetica, sans-serif;
+}
+
+.site-menu {
+  position: sticky;
+  top: 0;
+  z-index: 1200;
+  margin: 0 !important;
+  padding: 0 18px;
+  background: #fff;
+  border-radius: 0 !important;
+}
+
+.site-menu .brand-item {
+  display: flex !important;
+  align-items: center;
+  gap: 9px;
+  color: #111 !important;
+  font-weight: 700 !important;
+  font-size: 17px;
+}
+
+.site-menu .brand-item img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.site-menu .logout-item {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+main {
+  min-height: calc(100vh - 45px);
+}
+
+.zone-filter.ui.segment {
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.zone-filter-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-bottom: 7px;
+}
+
+.zone-filter .ui.dropdown {
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .site-menu {
+    padding: 0 8px;
+    overflow-x: auto;
+  }
+  .site-menu .item {
+    padding-left: 9px !important;
+    padding-right: 9px !important;
+  }
+}
+
+/* ------------------------- Responsive layout helpers ---------------------- */
+.live-location-button.ui.button {
+  margin-bottom: 0;
+}
+
+.live-hint {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #6b7280;
+  margin: 6px 0 12px;
+}
+
+.network-point-page {
+  margin-top: 0 !important;
+}
+
+.network-point-page .models-panel,
+.network-point-page .map-panel {
+  margin: 0 !important;
+}
+
+@media (max-width: 991px) {
+  .network-point-page {
+    padding: 0.5rem !important;
+  }
+
+  .network-point-page > .column {
+    padding: 0.35rem !important;
+  }
+
+  .network-point-page .models-panel {
+    margin-bottom: 0.5rem !important;
+  }
+
+  .network-point-page .map-panel {
+    padding: 0 !important;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 767px) {
+  .site-menu .brand-item {
+    font-size: 14px;
+  }
+
+  .site-menu .brand-item img {
+    width: 26px;
+    height: 26px;
+  }
+
+  .network-point-page {
+    padding: 0 !important;
+  }
+
+  .network-point-page .models-panel,
+  .network-point-page .map-panel {
+    border-radius: 4px !important;
+  }
+
+  .network-point-page .models-column .ui.message {
+    padding: 0.65em 0.9em;
+  }
+
+  .network-point-page .models-column .ui.message .header {
+    font-size: 0.95em;
+  }
+
+  .ui.modal {
+    margin: 0 !important;
+    max-height: 95vh;
+    border-radius: 4px !important;
+  }
+
+  .ui.modal > .content {
+    max-height: 68vh;
+    overflow-y: auto;
+  }
+
+  .ui.modal > .actions {
+    padding: 0.75rem !important;
+  }
+
+  .ui.form .fields {
+    flex-wrap: wrap;
+  }
+
+  .ui.form .fields > .field {
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-menu .item {
+    padding-left: 7px !important;
+    padding-right: 7px !important;
+    font-size: 12px;
+  }
+
+  .network-point-page .ui.message {
+    margin-bottom: 0.4rem;
+  }
+}
