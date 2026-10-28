@@ -23,6 +23,8 @@ cd fiber-map
 mysql -u root -p -e "CREATE DATABASE fiber_map CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
 
 # 3. Create the Python environment
+source .venv/bin/activate
+python manage.py check
 python -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install -r requirements.txt
