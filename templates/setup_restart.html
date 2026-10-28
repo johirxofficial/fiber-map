@@ -34,8 +34,8 @@
       connect to the new database, run migrations and create your administrator account.
     </p>
     <p>Run this from the project folder:</p>
-    <code>.venv\Scripts\python.exe run.py</code>
-    <p>or simply double-click <strong>run.bat</strong>.</p>
+    <code>{{ restart_command|default:"python run.py" }}</code>
+    <p>Start the server the same way you normally do (on Windows you can also double-click <strong>run.bat</strong>).</p>
     <div class="row">
       <button id="checkBtn">I have restarted — check now</button>
       <a class="button ghost" href="/setup?restart=1">Reload this page</a>
@@ -60,7 +60,7 @@
       if (data.restart_required) {
         status.className = 'status';
         status.textContent = manual
-          ? 'The new configuration is not active yet. Stop the server, run run.bat, then try again.'
+          ? 'The new configuration is not active yet. Stop the server, start it again, then try again.'
           : 'Waiting for restart…';
       } else {
         status.className = 'status err';

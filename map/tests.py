@@ -194,6 +194,45 @@ class UserApiTests(ApiTestCase):
         self.assertIn('message', response.data)
         self.assertFalse(UserProfile.objects.filter(pk=self.user.pk).exists())
 
+    def make_manager(self):
+        manager = UserProfile.objects.create_user(
+            username='manager', password='manager-pass-123', can_manage_users=True,
+        )
+        manager.role = 'manager'
+        manager.save()
+        return manager
+
+    def test_manager_cannot_change_an_administrator_password(self):
+        api = APIClient()
+        api.force_authenticate(user=self.make_manager())
+
+        response = api.patch(
+            f'/api/users/{self.admin.pk}/',
+            {'password': 'taken-over', 'confirm_password': 'taken-over'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 403)
+        self.admin.refresh_from_db()
+        self.assertTrue(self.admin.check_password('admin-pass-123'))
+
+        response = api.patch(f'/api/users/{self.admin.pk}/', {'is_active': False}, format='json')
+        self.assertEqual(response.status_code, 403)
+        self.admin.refresh_from_db()
+        self.assertTrue(self.admin.is_active)
+
+        response = api.delete(f'/api/users/{self.admin.pk}/')
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(UserProfile.objects.filter(pk=self.admin.pk).exists())
+
+    def test_manager_can_still_manage_normal_users(self):
+        api = APIClient()
+        api.force_authenticate(user=self.make_manager())
+
+        response = api.patch(f'/api/users/{self.user.pk}/', {'can_add_data': False}, format='json')
+        self.assertEqual(response.status_code, 200, response.content)
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.can_add_data)
+
 
 class MapCrudTests(ApiTestCase):
     def test_create_pop_creates_marker_and_requires_address(self):
@@ -254,6 +293,17 @@ class MapCrudTests(ApiTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['total_pop'], 1)
         self.assertEqual(response.data['total_clients'], 1)
+
+    def test_client_mobile_number_can_be_cleared(self):
+        # The management panel sends an empty string to remove a stored number.
+        response = self.api.put(f'/api/client/{self.client_model.pk}/update/', {
+            'name': self.client_model.name,
+            'mobile_number': '',
+            'marker': {'address': 'Test address'},
+        }, format='json')
+        self.assertEqual(response.status_code, 200, response.content)
+        self.client_model.refresh_from_db()
+        self.assertEqual(self.client_model.mobile_number, '')
 
 
 class CableTests(ApiTestCase):

@@ -207,8 +207,8 @@ def setup_wizard(request):
         db_host=(form.get('db_host') or 'localhost').strip(),
         db_port=(form.get('db_port') or '3306').strip(),
         admin_username=admin_username or 'admin',
-        default_can_add_data=_bool(form.get('default_can_add_data'), True),
-        default_can_edit_data=_bool(form.get('default_can_edit_data'), True),
+        default_can_add_data=_bool(form.get('default_can_add_data'), False),
+        default_can_edit_data=_bool(form.get('default_can_edit_data'), False),
         default_can_delete_data=_bool(form.get('default_can_delete_data'), False),
         default_can_manage_users=_bool(form.get('default_can_manage_users'), False),
     )

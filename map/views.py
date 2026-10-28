@@ -147,11 +147,31 @@ class UserViewSets(viewsets.ModelViewSet):
                            Q(first_name__icontains=search) | Q(last_name__icontains=search))
         return qs
 
+    def _may_modify(self, request, instance):
+        """Only administrators may change another administrator account."""
+        target_is_admin = getattr(instance, 'is_admin', False)
+        actor_is_admin = bool(getattr(request.user, 'is_admin', False))
+        return actor_is_admin or not target_is_admin
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if not self._may_modify(request, instance):
+            return Response(
+                {'detail': 'Only administrators can modify an administrator account.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().update(request, *args, **kwargs)
+
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         if instance.pk == request.user.pk:
             return Response({'detail': 'You cannot delete your own account.'},
                             status=status.HTTP_400_BAD_REQUEST)
+        if not self._may_modify(request, instance):
+            return Response(
+                {'detail': 'Only administrators can delete an administrator account.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         self.perform_destroy(instance)
         message = f"User with name {instance.username} has been deleted."
         return Response({'message': message}, status=status.HTTP_200_OK)
