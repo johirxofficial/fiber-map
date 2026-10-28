@@ -972,90 +972,183 @@ fiber-map/
 └── README.bn.md              # Bengali install guide
 ```
 
+# Important: MySQL Installation and Database Setup on Ubuntu Linux Server
 
+Follow these steps one by one to install MySQL, set the root password, log in, create a database, and configure a dedicated database user.
 
+## Step 1: Install MySQL
 
-## MySQL Setup Guide for Ubuntu Linux Server (Important)
-
-This guide covers installing MySQL, setting the root password, logging in, and creating a database and a dedicated user - step by step.
-
-### Step 1: Install MySQL
-
-Run in Terminal:
+Run the following commands in your terminal:
 
 ```bash
 sudo apt update
 sudo apt install mysql-server -y
+```
 
+Enable and start MySQL:
 
-After installation, start MySQL:
+```bash
 sudo systemctl enable --now mysql
+```
 
-Check status:
+Check the service status:
+
+```bash
 sudo systemctl status mysql
+```
 
-If you see `active (running)`, MySQL is running. Press `q` to exit.
+If you see `active (running)`, MySQL is running successfully. Press `q` to exit the status screen.
 
-### Step 2: First Time MySQL Login
+## Step 2: Log in to MySQL for the First Time
 
-If successful, you will see:
+Run:
 
-You are now inside MySQL. On Ubuntu, you can usually login as root without a password at first.
+```bash
+sudo mysql
+```
 
-### Step 3: Set Root Password
+If successful, you will see the MySQL prompt:
 
-Inside MySQL, run:
+```text
+mysql>
+```
+
+On Ubuntu, you can usually log in as the MySQL root user using `sudo mysql` without entering a MySQL password initially.
+
+## Step 3: Set the MySQL Root Password
+
+Inside the MySQL prompt, run:
+
+```sql
+ALTER USER 'root'@'localhost'
+IDENTIFIED BY 'MyStrongPass123!';
+```
 
 Replace `MyStrongPass123!` with your own strong password.
 
-> This is the MySQL Root password, not a specific database password.
-> If you get an error while setting the password, send the full error message. Do not try another authentication method on your own.
+**Important:** This is the MySQL root account password, not the password for a specific database.
 
-### Step 4: Test Login with Root Password
+The command uses the MySQL server's supported authentication configuration. If you encounter an error, check the exact error message before attempting to change the authentication method.
 
-First, exit from MySQL:
+## Step 4: Test Root Login with the Password
 
-Now in Terminal, run:
+Exit MySQL:
 
-It will show:
+```sql
+EXIT;
+```
 
-Type the password you set in Step 3 and press Enter. Nothing will appear on the screen while typing, which is normal.
+Now log in using the root account:
 
-If login is successful:
+```bash
+mysql -u root -p
+```
 
-If this step succeeds, your Root password setup is correct.
+When prompted:
 
-### Step 5: Create a New Database
+```text
+Enter password:
+```
 
-Inside the `mysql>` prompt, run:
+Enter the password you set in Step 3 and press Enter.
 
-Check if the database was created:
+**Note:** Password characters will not appear on the screen while typing. This is normal.
+
+If you see `mysql>`, the login was successful.
+
+If the login fails, use `sudo mysql` to regain access and check the root account's authentication configuration.
+
+## Step 5: Create a New Database
+
+After logging in, run:
+
+```sql
+CREATE DATABASE myapp_db
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+```
+
+Verify that the database exists:
+
+```sql
+SHOW DATABASES;
+```
 
 You should see `myapp_db` in the list.
 
-### Step 6: Create a Dedicated User for the Database
+## Step 6: Create a Dedicated Database User
 
-It's best practice not to use root for your application.
+For applications, it is better to use a separate database account instead of the root account.
 
-Replace `AppStrongPass456!` with your own strong password.
+Create a user:
 
-Now exit:
-
-Test login with the database user:
-
-Enter the password from Step 6 when prompted.
-
-### Step 7: Verify Everything
-
-After successful login, run:
-
-If it shows `myapp_db`, the connection is correct. Since it's a new database, `SHOW TABLES` may show no tables, which is normal.
+```sql
+CREATE USER 'myapp_user'@'localhost'
+IDENTIFIED BY 'AppStrongPass456!';
 ```
 
+Grant the user permissions on the application database:
 
-### Setup Summary
+```sql
+GRANT ALL PRIVILEGES ON myapp_db.*
+TO 'myapp_user'@'localhost';
+```
 
-> **Security:** Always use your own strong passwords and never share your actual passwords with anyone.
+Replace `AppStrongPass456!` with a different, strong password of your own.
+
+**Security note:** Store your actual passwords securely. Never commit real passwords to a public GitHub repository or README file.
+
+Exit MySQL:
+
+```sql
+EXIT;
+```
+
+Test the new database user's login:
+
+```bash
+mysql -u myapp_user -p myapp_db
+```
+
+Enter the password you configured in Step 6.
+
+## Step 7: Verify the Database Connection
+
+After logging in successfully, run:
+
+```sql
+SELECT DATABASE();
+SHOW TABLES;
+```
+
+The first command should return:
+
+```text
+myapp_db
+```
+
+The second command may return an empty result because the database does not contain any tables yet. This is normal.
+
+## Setup Summary
+
+| Item | Configuration |
+|---|---|
+| MySQL Server | Installed on Ubuntu |
+| MySQL root username | `root` |
+| Root login command | `mysql -u root -p` |
+| Database name | `myapp_db` |
+| Application database user | `myapp_user` |
+| Application database login | `mysql -u myapp_user -p myapp_db` |
+
+## Important Notes
+
+- Replace example passwords with your own strong passwords.
+- Keep the MySQL root account for administrative tasks.
+- Use a dedicated database user for your applications.
+- Do not share or expose actual passwords.
+- If any command produces an error, read the complete error message before proceeding.
+
+**Recommended workflow:** Complete Steps 1 and 2 first. Once `sudo mysql` opens the `mysql>` prompt, proceed to the next steps in order. If an error occurs, resolve it before continuing.
 
 
 ---
