@@ -1,6 +1,5 @@
 import json
 import re
-from json import JSONEncoder
 
 from django.db import transaction
 
@@ -130,20 +129,29 @@ class MarkerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Marker
         fields = ('id', 'type', 'latitude', 'longitude', 'address', 'notes', 'description')
+        # ``Marker.address`` is nullable in the database for imported records,
+        # but every marker created through the API needs an address.
+        extra_kwargs = {
+            'address': {'required': True, 'allow_blank': False, 'allow_null': False},
+        }
 
     def validate_address(self, value):
-        if not value:
+        if not (value or '').strip():
             raise serializers.ValidationError('Address is required')
-        return value
+        return value.strip()
 
     def validate_latitude(self, value):
         if value is None:
             raise serializers.ValidationError('Latitude is required')
+        if not -90 <= value <= 90:
+            raise serializers.ValidationError('Latitude must be between -90 and 90')
         return value
 
     def validate_longitude(self, value):
         if value is None:
             raise serializers.ValidationError('Longitude is required')
+        if not -180 <= value <= 180:
+            raise serializers.ValidationError('Longitude must be between -180 and 180')
         return value
 
 
@@ -607,6 +615,17 @@ class CableCreateSerializer(serializers.ModelSerializer):
         for point in polyline:
             if not isinstance(point, dict) or 'lat' not in point or 'lng' not in point:
                 raise serializers.ValidationError({'polyline': 'Every polyline point needs lat and lng'})
+            try:
+                lat = float(point['lat'])
+                lng = float(point['lng'])
+            except (TypeError, ValueError):
+                raise serializers.ValidationError({'polyline': 'Polyline coordinates must be numbers'})
+            if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+                raise serializers.ValidationError({'polyline': 'Polyline coordinates are outside the valid range'})
+
+        # Work on a copy: mutating the validated list in place would corrupt
+        # the payload if the same request data were validated twice.
+        polyline = [dict(point) for point in polyline]
 
         start_position = {
             "lat": starting_point.latitude,
@@ -619,16 +638,16 @@ class CableCreateSerializer(serializers.ModelSerializer):
         }
 
         first_point = polyline.pop(0)
-        lat_error = first_point['lat'] - start_position['lat']
-        lng_error = first_point['lng'] - start_position['lng']
+        lat_error = float(first_point['lat']) - start_position['lat']
+        lng_error = float(first_point['lng']) - start_position['lng']
         if abs(lat_error) > 0.001 or abs(lng_error) > 0.001:
             raise serializers.ValidationError("try draw polyline from starting point as close as possible")
 
         polyline.insert(0, start_position)
 
         last_point = polyline.pop()
-        lat_error = last_point['lat'] - end_position['lat']
-        lng_error = last_point['lng'] - end_position['lng']
+        lat_error = float(last_point['lat']) - end_position['lat']
+        lng_error = float(last_point['lng']) - end_position['lng']
         if abs(lat_error) > 0.001 or abs(lng_error) > 0.001:
             raise serializers.ValidationError("try draw polyline from ending point as close as possible")
 
@@ -767,8 +786,10 @@ class CoreAssignSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def update(self, instance, validated_data):
-        instance.assigned = validated_data['assigned']
-        instance.save()
+        # PATCH bodies that omit ``assigned`` used to raise KeyError (HTTP 500).
+        assigned = validated_data.get('assigned', instance.assigned)
+        instance.assigned = bool(assigned)
+        instance.save(update_fields=['assigned'])
         return instance
 
 
@@ -782,6 +803,15 @@ class ConnectCoresSerializer(serializers.ModelSerializer):
         core_to = attrs.get('core_to')
         if core_from == core_to:
             raise serializers.ValidationError('Cannot connect a core to itself')
+        if (
+            core_from is not None
+            and core_to is not None
+            and core_from.cable_id is not None
+            and core_from.cable_id == core_to.cable_id
+        ):
+            # Both ends of a single cable are already joined internally, so a
+            # manual connection would corrupt the routing table.
+            raise serializers.ValidationError('Both cores belong to the same cable')
         if Connection.objects.filter(core_from=core_from, core_to=core_to).exists() or \
                 Connection.objects.filter(core_from=core_to, core_to=core_from).exists():
             raise serializers.ValidationError('These cores are already connected')
@@ -930,6 +960,16 @@ class CustomNetworkPointSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'This is a built-in category. Use its own records tab instead.'
             )
+        return value
+
+    def validate_latitude(self, value):
+        if value is None or not -90 <= value <= 90:
+            raise serializers.ValidationError('Latitude must be between -90 and 90')
+        return value
+
+    def validate_longitude(self, value):
+        if value is None or not -180 <= value <= 180:
+            raise serializers.ValidationError('Longitude must be between -180 and 180')
         return value
 
     def validate(self, attrs):

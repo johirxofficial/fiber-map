@@ -870,6 +870,13 @@ mysql -u fibermap -p fiber_map < backup-2026-10-27.sql
 | `REACT_APP_MAP_CENTER_LNG` | `90.4125` | Fallback map centre longitude |
 | `REACT_APP_MAP_ZOOM` | `13` | Fallback zoom |
 | `REACT_APP_MAX_GPS_DISTANCE_KM` | `500` | GPS guard; `0` disables |
+| `DJANGO_TRUST_X_FORWARDED_PROTO` | off | Trust `X-Forwarded-Proto` (behind a TLS proxy) |
+| `DJANGO_SECURE_COOKIES` | off | Secure-only session and CSRF cookies |
+| `DJANGO_SECURE_SSL_REDIRECT` | off | Redirect HTTP to HTTPS |
+| `DJANGO_SECURE_HSTS_SECONDS` | `0` | HSTS max-age; `0` disables HSTS |
+
+The last four rows only make sense on an installation served over HTTPS with
+Nginx or Apache in front. Leave them unset for a plain-HTTP install.
 
 Useful `run.py` options:
 
@@ -948,6 +955,18 @@ npm run build
 ```
 
 Then copy `frontend/build/static` and `frontend/build/index.html` into the root `build/` folder, keeping the custom `build/management.html`. Deployment scripts run `collectstatic` automatically.
+
+### Run the test suite
+
+The tests use an in-memory SQLite database, so they do **not** touch your MySQL
+data and do not need the `CREATE DATABASE` privilege:
+
+```bash
+python manage.py test --settings=fibermap.test_settings
+```
+
+`fibermap/test_settings.py` is only loaded by that command; production keeps
+using MySQL through `fibermap/settings.py`.
 
 ---
 
@@ -1163,6 +1182,8 @@ The second command may return an empty result because the database does not cont
 - Set `DJANGO_ALLOWED_HOSTS` to your real domain.
 - Set `DJANGO_CSRF_TRUSTED_ORIGINS` and `DJANGO_CORS_ALLOWED_ORIGINS`.
 - Enable HTTPS with a valid certificate.
+- Behind a TLS proxy set `DJANGO_TRUST_X_FORWARDED_PROTO=1`, `DJANGO_SECURE_COOKIES=1`
+  and (once you are sure HTTPS works) `DJANGO_SECURE_SSL_REDIRECT=1`.
 - Keep `site_config.json`, `.env`, database dumps and `media/` private.
 - Do not expose MySQL or port 5003 to the internet.
 - Take regular database backups.

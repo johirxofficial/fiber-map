@@ -64,7 +64,6 @@ def dump_database():
         '--host=' + str(config.get('HOST') or '127.0.0.1'),
         '--port=' + str(config.get('PORT') or '3306'),
         '--user=' + str(config.get('USER') or 'root'),
-        '--password=' + str(config.get('PASSWORD') or ''),
         '--single-transaction',
         '--skip-lock-tables',
         '--no-tablespaces',
@@ -73,6 +72,11 @@ def dump_database():
         '--default-character-set=utf8mb4',
         database,
     ]
+    # The password is passed through MYSQL_PWD instead of --password so it does
+    # not show up in the process list (`ps aux`) while the dump runs.
+    child_env = os.environ.copy()
+    if config.get('PASSWORD'):
+        child_env['MYSQL_PWD'] = str(config['PASSWORD'])
     try:
         result = subprocess.run(
             command,
@@ -80,6 +84,7 @@ def dump_database():
             stderr=subprocess.PIPE,
             timeout=180,
             check=False,
+            env=child_env,
         )
     except Exception as exc:
         return False, f'MySQL export failed: {exc}'
@@ -140,8 +145,10 @@ def import_sql_file(path):
     client = _mysql_client()
     if client:
         command = [client, '-h', host, '-P', port, '-u', user]
+        child_env = os.environ.copy()
         if password:
-            command.append(f'-p{password}')
+            # Avoid exposing the password in the process list.
+            child_env['MYSQL_PWD'] = password
         command.append(database)
         try:
             with open(path, 'rb') as handle:
@@ -150,6 +157,7 @@ def import_sql_file(path):
                     stdin=handle,
                     capture_output=True,
                     timeout=600,
+                    env=child_env,
                 )
             if result.returncode != 0:
                 detail = (result.stderr or b'').decode('utf-8', 'replace').strip()

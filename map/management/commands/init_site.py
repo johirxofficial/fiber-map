@@ -1,12 +1,11 @@
 """Create the first administrator and site settings from a bootstrap config."""
 import json
-import os
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from map.models import SiteSettings, UserProfile
-from map.site_config import CONFIG_PATH, read_config, write_config
+from map.site_config import CONFIG_PATH, write_config
 
 
 class Command(BaseCommand):

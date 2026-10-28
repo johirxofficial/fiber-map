@@ -16,7 +16,8 @@ server {
     # Uncomment this block after running certbot --nginx.
     # return 301 https://$host$request_uri;
 
-    client_max_body_size 64m;
+    # Database imports are uploaded through the web UI (512 MB app limit).
+    client_max_body_size 512m;
 
     location / {
         proxy_pass http://fiber_map_app;
@@ -40,7 +41,8 @@ server {
 #     server_name example.com www.example.com;
 #     ssl_certificate     /etc/letsencrypt/live/example.com/fullchain.pem;
 #     ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
-#     client_max_body_size 64m;
+#     # Database imports are uploaded through the web UI (512 MB app limit).
+#     client_max_body_size 512m;
 #     location / {
 #         proxy_pass http://fiber_map_app;
 #         proxy_http_version 1.1;

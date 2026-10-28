@@ -66,6 +66,24 @@ DEBUG = env_bool('DJANGO_DEBUG', env_bool('SITE_DEBUG', False))
 # is configured.  Restrict this in production with DJANGO_ALLOWED_HOSTS.
 ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', ['*'])
 
+# HTTPS / reverse-proxy hardening.  Everything is opt-in so an installation
+# served over plain HTTP (the default for run.py) keeps working.
+# Enable these behind Nginx/Apache that terminates TLS; see .env.example.
+if env_bool('DJANGO_TRUST_X_FORWARDED_PROTO', False):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+if env_bool('DJANGO_SECURE_COOKIES', False):
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+if env_bool('DJANGO_SECURE_SSL_REDIRECT', False):
+    SECURE_SSL_REDIRECT = True
+
+SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_SECURE_HSTS_SECONDS') or 0)
+if SECURE_HSTS_SECONDS:
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS', True)
+    SECURE_HSTS_PRELOAD = env_bool('DJANGO_SECURE_HSTS_PRELOAD', False)
+
 # The API is same-origin in normal use.  Add your public HTTPS origin here only
 # when you run the React dev server on a different host/port.
 CSRF_TRUSTED_ORIGINS = env_list(
@@ -217,6 +235,10 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    # Brute-force protection for the login endpoint (see UserLoginApiView).
+    'DEFAULT_THROTTLE_RATES': {
+        'login': '30/min',
+    },
 }
 
 # Internationalization

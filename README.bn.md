@@ -809,6 +809,21 @@ mysql -u fibermap -p fiber_map < backup-2026-10-27.sql
 | `REACT_APP_MAP_CENTER_LNG` | `90.4125` | ম্যাপের ডিফল্ট দ্রাঘিমাংশ |
 | `REACT_APP_MAP_ZOOM` | `13` | ডিফল্ট জুম |
 | `REACT_APP_MAX_GPS_DISTANCE_KM` | `500` | GPS সীমা; `0` দিলে বন্ধ |
+| `DJANGO_TRUST_X_FORWARDED_PROTO` | বন্ধ | TLS প্রক্সির পেছনে থাকলে চালু করুন |
+| `DJANGO_SECURE_COOKIES` | বন্ধ | শুধু HTTPS-এ cookie পাঠাবে |
+| `DJANGO_SECURE_SSL_REDIRECT` | বন্ধ | HTTP → HTTPS রিডাইরেক্ট |
+| `DJANGO_SECURE_HSTS_SECONDS` | `0` | HSTS সময়; `0` মানে বন্ধ |
+
+শেষ চারটি শুধু HTTPS-এ চলা ইনস্টলেশনের জন্য (Nginx/Apache সামনে থাকলে)।
+সাধারণ HTTP ইনস্টলেশনে এগুলো খালি রাখুন।
+
+### টেস্ট চালানো
+
+টেস্টগুলো in-memory SQLite ব্যবহার করে, তাই আপনার MySQL ডেটা স্পর্শ করে না:
+
+```bash
+python manage.py test --settings=fibermap.test_settings
+```
 
 `run.py`-এর দরকারি অপশন:
 

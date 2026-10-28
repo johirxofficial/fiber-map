@@ -1,17 +1,11 @@
 """First-run setup wizard and site/database administration endpoints."""
-import json
 import os
 import re
-import shutil
-import subprocess
-import sys
-import tempfile
 from pathlib import Path
 
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.core.files.storage import default_storage
-from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
@@ -22,12 +16,37 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from . import db_utils
-from .models import SiteSettings, UserProfile
+from .models import SiteSettings
 from .permissions import CanManageUsers, IsAdmin
 from .serializers import SiteSettingsSerializer
 from .site_config import read_config, write_config
 
 LOGO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'}
+MAX_SQL_UPLOAD_BYTES = 512 * 1024 * 1024
+
+
+def _setup_incomplete():
+    """True while the installation still needs the wizard.
+
+    Database probes may connect to arbitrary hosts, so they are only exposed
+    anonymously before setup has finished.  Afterwards they require an admin.
+    """
+    config = read_config()
+    if config.get('setup_required') is True or config.get('restart_required'):
+        return True
+    try:
+        site = SiteSettings.objects.order_by('id').first()
+        return not (site and site.setup_completed)
+    except Exception:
+        # The database is unreachable, which is exactly what the wizard tests.
+        return True
+
+
+def _may_probe_database(request):
+    if _setup_incomplete():
+        return True
+    user = getattr(request, 'user', None)
+    return bool(user and getattr(user, 'is_authenticated', False) and getattr(user, 'is_admin', False))
 
 
 def _defaults():
@@ -69,6 +88,8 @@ def _save_pending_sql(uploaded):
         return None
     if not uploaded.name.lower().endswith('.sql'):
         raise ValueError('Only .sql files are supported for SQL import.')
+    if getattr(uploaded, 'size', 0) and uploaded.size > MAX_SQL_UPLOAD_BYTES:
+        raise ValueError('SQL files must be smaller than 512 MB.')
     directory = Path(settings.BASE_DIR) / 'tmp'
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / f'pending-import-{timezone.now().strftime("%Y%m%d%H%M%S")}.sql'
@@ -230,6 +251,11 @@ def setup_wizard(request):
         db_host, db_port, db_user, db_password, db_name, create=True
     )
     if not ok:
+        if sql_path:
+            try:
+                os.remove(sql_path)
+            except OSError:
+                pass
         context['error'] = message
         return render(request, 'setup.html', context)
 
@@ -293,6 +319,11 @@ def setup_status(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def setup_test_database(request):
+    if not _may_probe_database(request):
+        return Response(
+            {'detail': 'Setup is already complete. Administrator access is required.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
     data = request.data
     ok, message = db_utils.test_mysql_connection(
         data.get('db_host') or 'localhost',

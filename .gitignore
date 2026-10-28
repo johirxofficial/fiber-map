@@ -53,3 +53,12 @@ Thumbs.db
 *.bak
 *.tmp
 demo/noakhal1_fiberMap_demo.sql
+
+# Local database dumps and editor copies.  A dump of the live database can
+# contain customer data and credentials, so it must never be committed.
+/*.sql
+*.sql.gz
+* copy.*
+*(copy)*
+/test-media/
+/test-staticfiles/

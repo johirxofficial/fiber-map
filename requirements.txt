@@ -3,5 +3,8 @@ Django==5.0.14
 djangorestframework==3.14.0
 django-cors-headers==4.3.1
 mysqlclient==2.3.0
+# Used by map/db_utils.py for the setup wizard database test and the
+# pure-Python SQL import fallback when the mysql client binary is missing.
+mysql-connector-python==9.1.0
 whitenoise==6.6.0
 waitress==3.0.2

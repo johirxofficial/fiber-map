@@ -34,6 +34,8 @@ const CableEditTab = ({ cableId, modalClose }) => {
   const getCable = async () => {
     const { data, status, error } = await getCableDetails(cableId);
     if (status === 200) {
+      // The modal may have been closed while the request was in flight.
+      if (!idInputRef.current) return;
       idInputRef.current.value = data.identifier;
       lengthInputRef.current.value = data.length;
       notesInputRef.current.value = data.notes;

@@ -31,6 +31,8 @@ const TJBoxDetailsTab = ({ tjboxId, modalClose }) => {
   const getTJBoxDetails = async (id) => {
     const { data, status, error } = await getTJBox(id);
     if (status === 200) {
+      // The modal may have been closed while the request was in flight.
+      if (!nameInputRef.current) return;
       nameInputRef.current.value = data.name;
       addressInputRef.current.value = data.marker.address;
       notesInputRef.current.value = data.marker.notes;

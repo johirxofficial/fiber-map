@@ -346,7 +346,7 @@ export async function addGponInputCable(id = 0, payload = {}) {
 
 export async function removeGponInputCable(id = 0) {
   try {
-    const { data, status } = await api.get(`gpon/${id}/remove-input-cable/`);
+    const { data, status } = await api.post(`gpon/${id}/remove-input-cable/`);
     return { data, status, error: null };
   } catch (error) {
     return { data: null, status: null, error };

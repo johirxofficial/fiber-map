@@ -44,7 +44,7 @@ const Login = () => {
   }, []);
 
   if (token !== null) {
-    return <Navigate to="/" />;
+    return <Navigate to="/" replace />;
   }
 
   const handleSubmit = (event) => {

@@ -1,5 +1,6 @@
 import hashlib
 import json
+import math
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -12,13 +13,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from django.http import HttpResponse, FileResponse
-from django.core.management import call_command
-from django.views import View
-
 from . import permissions
-from .models import (POP, Client, TJBox, Gpon, Cable, Core, Connection, UserProfile, Marker, Reseller,
-                     Zone, SubZone, ManagerUser, SiteSettings, NetworkCategory, CustomNetworkPoint)
+from .models import (POP, Client, TJBox, Gpon, Cable, Core, Connection, UserProfile, Marker, MarkerType,
+                     Reseller, Zone, SubZone, ManagerUser, NetworkCategory, CustomNetworkPoint)
 from .serializers import (POPCreateSerializer, ClientCreateSerializer, GponCreateSerializer, TJBoxCreateSerializer,
                           POPListSerializer, ClientListSerializer, GponListSerializer,
                           TJBoxListSerializer, TJBoxUpdateSerializer, CableCreateSerializer, CableListSerializer,
@@ -29,7 +26,7 @@ from .serializers import (POPCreateSerializer, ClientCreateSerializer, GponCreat
                           ResellerCoreSerializer, ResellerUpdateSerializer, ResellerListSerializer,
                           ResellerCreateSerializer, ZoneCreateSerializer, ZoneListSerializer, ZoneUpdateSerializer,
                           SubZoneCreateSerializer, SubZoneListSerializer, SubZoneUpdateSerializer,
-                          ManagerUserSerializer, SiteSettingsSerializer, NetworkCategorySerializer,
+                          ManagerUserSerializer, NetworkCategorySerializer,
                           CustomNetworkPointSerializer)
 
 from .utility import find_core_paths
@@ -37,8 +34,8 @@ from .utility import find_core_paths
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.settings import api_settings
 from rest_framework.authtoken.models import Token
-from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.throttling import ScopedRateThrottle
 
 from django.utils import timezone
 
@@ -80,6 +77,60 @@ def _serialize_core_paths(cores):
     return serialized_data
 
 
+def _haversine_km(point_a, point_b):
+    """Great-circle distance in kilometres between two ``{'lat', 'lng'}`` points."""
+    lat1 = math.radians(float(point_a['lat']))
+    lng1 = math.radians(float(point_a['lng']))
+    lat2 = math.radians(float(point_b['lat']))
+    lng2 = math.radians(float(point_b['lng']))
+    value = (
+        math.sin((lat2 - lat1) / 2) ** 2
+        + math.cos(lat1) * math.cos(lat2) * math.sin((lng2 - lng1) / 2) ** 2
+    )
+    return 2 * 6371.0088 * math.asin(min(1.0, math.sqrt(value)))
+
+
+def _polyline_length_km(points):
+    total = 0.0
+    for previous, current in zip(points, points[1:]):
+        try:
+            total += _haversine_km(previous, current)
+        except (KeyError, TypeError, ValueError):
+            continue
+    return total
+
+
+def _split_cable_length(total_length, first_half, second_half):
+    """Split the original cable length so the two halves add up to the whole.
+
+    A cut used to copy the full length onto both halves, which doubled the
+    distance reported by the path endpoints.  The split is proportional to the
+    real geometry of each half, with an even split as a fallback.
+    """
+    total = float(total_length or 0)
+    if total <= 0:
+        return 0, 0
+    first = _polyline_length_km(first_half)
+    second = _polyline_length_km(second_half)
+    geometry = first + second
+    if geometry <= 0:
+        return round(total / 2, 2), round(total / 2, 2)
+    first_length = round(total * first / geometry, 2)
+    return first_length, round(max(total - first_length, 0), 2)
+
+
+def _detach_gpon_input_cores(core_ids):
+    """Drop ``Gpon.input_core`` links before their cores are deleted.
+
+    ``Gpon.input_core`` uses ``on_delete=CASCADE`` in the legacy schema, so
+    deleting a cable (and therefore its cores) used to delete every GPON that
+    pointed at one of those cores.  Clearing the link keeps the GPON intact.
+    """
+    core_ids = [core_id for core_id in core_ids if core_id is not None]
+    if core_ids:
+        Gpon.objects.filter(input_core_id__in=core_ids).update(input_core=None)
+
+
 class UserViewSets(viewsets.ModelViewSet):
     queryset = UserProfile.objects.all()
     serializer_class = UserSerializer
@@ -103,12 +154,14 @@ class UserViewSets(viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
         self.perform_destroy(instance)
         message = f"User with name {instance.username} has been deleted."
-        return Response({'message': message}, status=status.HTTP_204_NO_CONTENT)
+        return Response({'message': message}, status=status.HTTP_200_OK)
 
 
 class UserLoginApiView(ObtainAuthToken):
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
     permission_classes = (AllowAny,)
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = 'login'
 
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
@@ -232,7 +285,11 @@ class NetworkCategoryCreateView(generics.CreateAPIView):
     permission_classes = (IsAuthenticated, permissions.CanManageUsers)
 
     def perform_create(self, serializer):
-        if serializer.validated_data.get('sort_order') is None:
+        # ``sort_order`` has a model default, so ``validated_data`` always
+        # contains 100 and a new category would never be appended at the end.
+        # Only honour an explicit value supplied by the client.
+        supplied = self.request.data.get('sort_order') if hasattr(self.request, 'data') else None
+        if supplied in (None, ''):
             last = NetworkCategory.objects.order_by('-sort_order').first()
             serializer.save(sort_order=(last.sort_order + 10) if last else 100)
         else:
@@ -601,6 +658,9 @@ class CableDeleteView(APIView):
             cable = Cable.objects.get(pk=pk)
             with transaction.atomic():
                 Gpon.objects.filter(input_cable=cable).update(input_cable=None)
+                _detach_gpon_input_cores(
+                    Core.objects.filter(cable=cable).values_list('id', flat=True)
+                )
                 cable.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Cable.DoesNotExist:
@@ -642,8 +702,9 @@ class TJBoxCoresDetailsAPIView(APIView):
                 'output_cores': []
             }
 
-            cores = Core.objects.filter(marker=gpon.marker, splitter=gpon)
-            gpon_out_cores = cores.filter(cable=None).order_by('core_number')
+            gpon_cores = Core.objects.filter(marker=gpon.marker, splitter=gpon)
+            # core_number 0 is the GPON input core, not a splitter output.
+            gpon_out_cores = gpon_cores.filter(cable=None).exclude(core_number=0).order_by('core_number')
             for core in gpon_out_cores:
                 gpon_out_details['output_cores'].append(GponOutCoreSerializer(core).data)
             splitters.append(gpon_out_details)
@@ -671,7 +732,11 @@ class GponCoresDetailsAPIView(APIView):
         input_cable = gpon.input_cable
         gpon_input_cable_data = None
         if input_cable is not None:
-            cables.remove(input_cable)
+            # ``discard`` instead of ``remove``: a cable can be linked as the
+            # input cable even when no core at this marker references it (for
+            # example after importing an older dump), and ``set.remove`` used to
+            # raise KeyError (HTTP 500) in that case.
+            cables.discard(input_cable)
             serialized_cable = CableSerializer(input_cable).data
             serialized_cable['cores'] = GponCableCoreSerializer(cores.filter(cable=input_cable), many=True).data
             gpon_input_cable_data = serialized_cable
@@ -714,7 +779,7 @@ class AddGponInputCable(APIView):
         except Gpon.DoesNotExist:
             return Response({'error': 'Gpon not found'}, status=status.HTTP_404_NOT_FOUND)
         except KeyError:
-            return Response({'error': 'cable_id is required'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'cable_id is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         if gpon.input_cable is not None:
             return Response({'error': 'Gpon already has an input cable'}, status=status.HTTP_400_BAD_REQUEST)
@@ -748,7 +813,14 @@ class RemoveGponInputCable(APIView):
     # authentication_classes = [TokenAuthentication]
     # permission_classes = [IsAuthenticated]
 
+    def post(self, request, gpon_id):
+        return self._remove(gpon_id)
+
     def get(self, request, gpon_id):
+        # Kept for backwards compatibility with older builds that used GET.
+        return self._remove(gpon_id)
+
+    def _remove(self, gpon_id):
         try:
             gpon = Gpon.objects.get(id=gpon_id)
         except Gpon.DoesNotExist:
@@ -789,7 +861,7 @@ class GponInputCoreAssignView(APIView):
         except Gpon.DoesNotExist:
             return Response({'error': 'Gpon not found'}, status=status.HTTP_404_NOT_FOUND)
         except KeyError:
-            return Response({'error': 'core_id is required'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'core_id is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         if gpon.input_cable is None:
             return Response({'error': 'Gpon does not have an input cable'}, status=status.HTTP_400_BAD_REQUEST)
@@ -843,7 +915,7 @@ class GponInputCoreWithdrawView(APIView):
             core_id = data['core_id']
             core = Core.objects.get(id=core_id)
         except KeyError:
-            return Response({'error': 'core_id is required'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'core_id is required'}, status=status.HTTP_400_BAD_REQUEST)
         except Core.DoesNotExist:
             return Response({'error': 'Core not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -936,206 +1008,156 @@ class CableCutAPIView(APIView):
         data = request.data
         try:
             cable = Cable.objects.get(id=cable_id)
-            divider_point = data['divider_point']
-            push_index = data['push_index']
-            tjbox_id = data['tjbox_id']
-            tjbox_name = data['tjbox_name']
-
         except Cable.DoesNotExist:
             return Response({'error': 'Cable not found'}, status=status.HTTP_404_NOT_FOUND)
-        except KeyError:
-            return Response({'error': '{divider_point , push_index, tjbox_id, tjbox_name} is required'},
-                            status=status.HTTP_400_BAD_REQUEST)
 
-        marker = Marker.objects.create(identifier=tjbox_id, type="TJ_BOX", latitude=divider_point[0],
-                                       longitude=divider_point[1])
-        tj_box = TJBox.objects.create(identifier=tjbox_id, name=tjbox_name, marker=marker)
+        divider_point = data.get('divider_point')
+        push_index = data.get('push_index')
+        tjbox_id = str(data.get('tjbox_id') or '').strip()
+        tjbox_name = str(data.get('tjbox_name') or '').strip()
+
+        if not tjbox_id or not tjbox_name:
+            return Response({'error': 'tjbox_id and tjbox_name are required'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if not isinstance(divider_point, (list, tuple)) or len(divider_point) != 2:
+            return Response({'error': 'divider_point must be [latitude, longitude]'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            divider_lat = float(divider_point[0])
+            divider_lng = float(divider_point[1])
+        except (TypeError, ValueError):
+            return Response({'error': 'divider_point must contain numbers'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if not (-90 <= divider_lat <= 90 and -180 <= divider_lng <= 180):
+            return Response({'error': 'divider_point is outside the valid coordinate range'},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         polyline = cable.get_polyline()
         if len(polyline) < 2:
-            marker.delete()
             return Response({'error': 'Cable has no polyline to cut'}, status=status.HTTP_400_BAD_REQUEST)
         try:
             push_index = int(push_index)
         except (TypeError, ValueError):
-            marker.delete()
             return Response({'error': 'push_index must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
-        if push_index < 0 or push_index >= len(polyline):
-            marker.delete()
-            return Response({'error': 'push_index is outside the cable polyline'}, status=status.HTTP_400_BAD_REQUEST)
+        # The cut point must leave at least one segment on each side.
+        if push_index < 0 or push_index >= len(polyline) - 1:
+            return Response({'error': 'push_index is outside the cable polyline'},
+                            status=status.HTTP_400_BAD_REQUEST)
 
-        divider = {'lat': divider_point[0], 'lng': divider_point[1]}
+        divider = {'lat': divider_lat, 'lng': divider_lng}
         first_half = polyline[:push_index + 1] + [divider]
         second_half = [divider] + polyline[push_index + 1:]
+        left_length, right_length = _split_cable_length(cable.length, first_half, second_half)
 
-        left_cable = Cable.objects.create(
-            identifier=cable.identifier,
-            type=cable.type,
-            start_from=cable.start_from,
-            starting_point=cable.starting_point,
-            end_to=marker.type,
-            ending_point=marker,
-            number_of_cores=cable.number_of_cores,
-            length=cable.length,
-            notes=cable.notes,
-            description=cable.description,
-            polyline=json.dumps(first_half),
+        with transaction.atomic():
+            marker = Marker.objects.create(
+                identifier=tjbox_id,
+                type=MarkerType.TJ_BOX,
+                latitude=divider_lat,
+                longitude=divider_lng,
+            )
+            TJBox.objects.create(
+                identifier=tjbox_id,
+                name=tjbox_name,
+                marker=marker,
+                zone=cable.zone,
+                subzone=cable.subzone,
+            )
 
-        )
-        right_cable = Cable.objects.create(
-            identifier=cable.identifier,
-            type=cable.type,
-            start_from=marker.type,
-            starting_point=marker,
-            end_to=cable.end_to,
-            ending_point=cable.ending_point,
-            number_of_cores=cable.number_of_cores,
-            length=cable.length,
-            notes=cable.notes,
-            description=cable.description,
-            polyline=json.dumps(second_half),
+            left_cable = Cable.objects.create(
+                identifier=cable.identifier,
+                type=cable.type,
+                start_from=cable.start_from,
+                starting_point=cable.starting_point,
+                end_to=MarkerType.TJ_BOX,
+                ending_point=marker,
+                number_of_cores=cable.number_of_cores,
+                length=left_length,
+                notes=cable.notes,
+                description=cable.description,
+                polyline=json.dumps(first_half),
+                zone=cable.zone,
+                subzone=cable.subzone,
+            )
+            right_cable = Cable.objects.create(
+                identifier=cable.identifier,
+                type=cable.type,
+                start_from=MarkerType.TJ_BOX,
+                starting_point=marker,
+                end_to=cable.end_to,
+                ending_point=cable.ending_point,
+                number_of_cores=cable.number_of_cores,
+                length=right_length,
+                notes=cable.notes,
+                description=cable.description,
+                polyline=json.dumps(second_half),
+                zone=cable.zone,
+                subzone=cable.subzone,
+            )
 
-        )
+            starting_point_cores = list(
+                Core.objects.filter(cable=cable, marker=cable.starting_point).order_by('core_number')
+            )
+            ending_point_cores = list(
+                Core.objects.filter(cable=cable, marker=cable.ending_point).order_by('core_number')
+            )
 
-        starting_point_cores = list(Core.objects.filter(cable=cable, marker=cable.starting_point).order_by('core_number'))
-        ending_point_cores = list(Core.objects.filter(cable=cable, marker=cable.ending_point).order_by('core_number'))
+            for core in starting_point_cores:
+                core.cable = left_cable
+                core.save(update_fields=['cable'])
+            for core in ending_point_cores:
+                core.cable = right_cable
+                core.save(update_fields=['cable'])
 
-        for core in starting_point_cores:
-            core.cable = left_cable
-            core.save(update_fields=['cable'])
-        for core in ending_point_cores:
-            core.cable = right_cable
-            core.save(update_fields=['cable'])
+            for starting_core, ending_core in zip(starting_point_cores, ending_point_cores):
+                conn_left_to_right = Connection.objects.filter(core_from=starting_core,
+                                                               core_to=ending_core).first()
+                if conn_left_to_right is not None:
+                    left_cable_core_for_tj = Core.objects.create(
+                        marker=marker,
+                        cable=left_cable,
+                        core_number=conn_left_to_right.core_from.core_number,
+                        color=conn_left_to_right.core_from.color,
+                        assigned=False
+                    )
 
-        for starting_core, ending_core in zip(starting_point_cores, ending_point_cores):
-            conn_left_to_right = Connection.objects.filter(core_from=starting_core,
-                                                           core_to=ending_core).first()
-            if conn_left_to_right is not None:
-                left_cable_core_for_tj = Core.objects.create(
-                    marker=marker,
-                    cable=left_cable,
-                    core_number=conn_left_to_right.core_from.core_number,
-                    color=conn_left_to_right.core_from.color,
-                    assigned=False
-                )
+                    conn_left_to_right.core_to = left_cable_core_for_tj
+                    conn_left_to_right.save(update_fields=['core_to'])
 
-                conn_left_to_right.core_to = left_cable_core_for_tj
-                conn_left_to_right.save(update_fields=['core_to'])
+                    Connection.objects.create(core_from=left_cable_core_for_tj, core_to=conn_left_to_right.core_from)
 
-                Connection.objects.create(core_from=left_cable_core_for_tj, core_to=conn_left_to_right.core_from)
+                conn_right_to_left = Connection.objects.filter(core_from=ending_core,
+                                                               core_to=starting_core).first()
 
-            conn_right_to_left = Connection.objects.filter(core_from=ending_core,
-                                                           core_to=starting_core).first()
+                if conn_right_to_left is not None:
+                    right_cable_core_for_tj = Core.objects.create(
+                        marker=marker,
+                        cable=right_cable,
+                        core_number=conn_right_to_left.core_from.core_number,
+                        color=conn_right_to_left.core_from.color,
+                        assigned=False
+                    )
 
-            if conn_right_to_left is not None:
-                right_cable_core_for_tj = Core.objects.create(
-                    marker=marker,
-                    cable=right_cable,
-                    core_number=conn_right_to_left.core_from.core_number,
-                    color=conn_right_to_left.core_from.color,
-                    assigned=False
-                )
+                    conn_right_to_left.core_to = right_cable_core_for_tj
+                    conn_right_to_left.save(update_fields=['core_to'])
 
-                conn_right_to_left.core_to = right_cable_core_for_tj
-                conn_right_to_left.save(update_fields=['core_to'])
+                    Connection.objects.create(core_from=right_cable_core_for_tj, core_to=conn_right_to_left.core_from)
 
-                Connection.objects.create(core_from=right_cable_core_for_tj, core_to=conn_right_to_left.core_from)
+            # Keep GPON input cable links pointing at the correct side after the cut.
+            for gpon in Gpon.objects.filter(input_cable=cable):
+                if gpon.marker_id == cable.ending_point_id:
+                    gpon.input_cable = right_cable
+                else:
+                    gpon.input_cable = left_cable
+                gpon.save(update_fields=['input_cable'])
 
-        # Keep GPON input cable links pointing at the correct side after the cut.
-        for gpon in Gpon.objects.filter(input_cable=cable):
-            if gpon.marker_id == cable.ending_point_id:
-                gpon.input_cable = right_cable
-            else:
-                gpon.input_cable = left_cable
-            gpon.save(update_fields=['input_cable'])
-
-        cable.delete()
+            # Cores of the original cable are about to disappear with it.
+            _detach_gpon_input_cores(
+                Core.objects.filter(cable=cable).values_list('id', flat=True)
+            )
+            cable.delete()
 
         return Response({"status": "cable cut success"}, status=status.HTTP_200_OK)
-
-
-# class DumpDatabaseAPIView(APIView):
-#     # authentication_classes = [TokenAuthentication]
-#     # permission_classes = [IsAuthenticated]
-#
-#     def get(self, request):
-#         try:
-#             # Call the dumpdata command and capture its output
-#             call_command('dumpdata', '--natural-foreign', '--natural-primary', '-e', 'contenttypes', '-e',
-#                          'auth.Permission', '-e', 'authtoken', '-o', "data_dump.json.xz")
-#
-#             # Open the BZ2 file and serve it as a response
-#             with open("ubuntu.iso", 'rb') as xz_file:
-#                 response = HttpResponse(xz_file.read(), content_type='application/octet-stream')
-#                 response['Content-Disposition'] = 'attachment; filename="ubuntu.iso"'
-#                 return response
-#
-#         except Exception as e:
-#             return Response({"error": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-from django.http import StreamingHttpResponse, FileResponse
-import os
-
-#
-# class DumpDatabaseAPIView(APIView):
-#     # authentication_classes = [TokenAuthentication]
-#     # permission_classes = [IsAuthenticated]
-#
-#     # def file_iterator(self, file_path, chunk_size=8192):
-#     #     with open(file_path, 'rb') as f:
-#     #         while True:
-#     #             chunk = f.read(chunk_size)
-#     #             if not chunk:
-#     #                 break
-#     #             yield chunk
-#
-#     def get(self, request):
-#         try:
-#             # Call the dumpdata command and capture its output
-#             call_command('dumpdata', '--natural-foreign', '--natural-primary', '-e', 'contenttypes', '-e',
-#                          'auth.Permission', '-e', 'authtoken', '-o', "data_dump.json.xz")
-#
-#             # Serve the BZ2 file using StreamingHttpResponse
-#             backup_file_path = "ubuntu.iso"
-#             if os.path.exists(backup_file_path):
-#                 response = FileResponse(open(backup_file_path, 'rb'),as_attachment=True)
-#                 response['Content-Type'] = 'application/octet-stream'
-#                 response['Content-Disposition'] = 'attachment; filename="ubuntu.iso"'
-#                 return response
-#             else:
-#                 return Response({"error": "Backup file not found"}, status=status.HTTP_404_NOT_FOUND)
-#
-#         except Exception as e:
-#             return Response({"error": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-from django.http import StreamingHttpResponse
-import os
-
-
-class DumpDatabaseAPIView(APIView):
-    def get(self, request):
-        try:
-            backup_file_path = "ubuntu.iso"
-
-            if os.path.exists(backup_file_path):
-                def file_iterator(file_path, chunk_size=8192):
-                    with open(file_path, 'rb') as f:
-                        while True:
-                            chunk = f.read(chunk_size)
-                            if not chunk:
-                                break
-                            yield chunk
-
-                response = StreamingHttpResponse(file_iterator(backup_file_path),
-                                                 content_type='application/octet-stream')
-                response['Content-Length'] = os.path.getsize(backup_file_path)
-                response['Content-Disposition'] = 'attachment; filename="ubuntu.iso"'
-                return response
-            else:
-                return Response({"error": "Backup file not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        except Exception as e:
-            return Response({"error": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ZoneCreateView(generics.CreateAPIView):
@@ -1240,8 +1262,6 @@ for _view in (
     SubZoneListView, SubZoneCreateView, SubZoneUpdateView, SubZoneDeleteView,
 ):
     _view.permission_classes = (IsAuthenticated,)
-
-DumpDatabaseAPIView.permission_classes = (permissions.IsAdmin,)
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])

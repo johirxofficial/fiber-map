@@ -29,6 +29,8 @@ const ResellerEdit = ({ resellerId, modalClose }) => {
   const getResellerDetails = async (id) => {
     const { data, status, error } = await getReseller(id);
     if (status === 200) {
+      // The modal may have been closed while the request was in flight.
+      if (!nameInputRef.current) return;
       nameInputRef.current.value = data.name;
       addressInputRef.current.value = data.marker.address;
       notesInputRef.current.value = data.marker.notes;
@@ -104,9 +106,17 @@ const ResellerEdit = ({ resellerId, modalClose }) => {
               labelPosition: "right",
               icon: "copy",
               content: "Copy",
-              onClick: () => {
-                navigator.clipboard.writeText(latLng);
-                toast.success("Copied to clipboard");
+              onClick: async () => {
+                if (!navigator.clipboard || !navigator.clipboard.writeText) {
+                  toast.error("Clipboard is not available. Copy the coordinates manually.");
+                  return;
+                }
+                try {
+                  await navigator.clipboard.writeText(latLng);
+                  toast.success("Copied to clipboard");
+                } catch (error) {
+                  toast.error("Could not copy to clipboard");
+                }
               },
             }}
             value={`latitude and longitude : ${latLng}`}

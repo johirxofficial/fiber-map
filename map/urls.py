@@ -48,16 +48,16 @@ urlpatterns = [
     path('pop/<int:id>/update/', views.PopUpdateView.as_view(), name='pop-update'),
     path('pop/<int:pk>/delete/', views.PopDeleteView.as_view(), name='pop-delete'),
 
-    path('client/', views.ClientListView.as_view(), name='client-create'),
-    path('client/create/', views.ClientCreateView.as_view(), name='client-list'),
+    path('client/', views.ClientListView.as_view(), name='client-list'),
+    path('client/create/', views.ClientCreateView.as_view(), name='client-create'),
     path('client-details/<int:client_id>/cores/', views.ClientCoresDetailsAPIView.as_view(),
          name='client-core-details'),
     path('client/<int:client_id>/paths/', views.ClientPathsView.as_view(), name='client-path'),
     path('client/<int:id>/update/', views.ClientUpdateView.as_view(), name='client-update'),
     path('client/<int:pk>/delete/', views.ClientDeleteView.as_view(), name='client-delete'),
 
-    path('reseller/', views.ResellerListView.as_view(), name='reseller-create'),
-    path('reseller/create/', views.ResellerCreateView.as_view(), name='reseller-list'),
+    path('reseller/', views.ResellerListView.as_view(), name='reseller-list'),
+    path('reseller/create/', views.ResellerCreateView.as_view(), name='reseller-create'),
     path('reseller-details/<int:reseller_id>/cores/', views.ResellerCoresDetailsAPIView.as_view(),
          name='reseller-core-details'),
     path('reseller/<int:reseller_id>/paths/', views.ResellerPathsView.as_view(), name='reseller-path'),
@@ -72,8 +72,8 @@ urlpatterns = [
     path('tjbox/<int:pk>/delete/', views.TJBoxDeleteView.as_view(), name='tjbox-delete'),
 
 
-    path('gpon/', views.GponListView.as_view(), name='gpon-create'),
-    path('gpon/create/', views.GponCreateView.as_view(), name='gpon-list'),
+    path('gpon/', views.GponListView.as_view(), name='gpon-list'),
+    path('gpon/create/', views.GponCreateView.as_view(), name='gpon-create'),
     path('gpon-details/<int:gpon_id>/cores/', views.GponCoresDetailsAPIView.as_view(),
          name='gpon-core-details'),
     path('gpon/<int:gpon_id>/add-input-cable/', views.AddGponInputCable.as_view(), name='gpon-add-input-cable'),

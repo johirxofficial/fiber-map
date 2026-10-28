@@ -376,7 +376,12 @@ const MapSearch = () => {
     (Array.isArray(cables) ? cables : []).forEach((record) => {
       const points = Array.isArray(record.polyline) ? record.polyline : [];
       const point = points[Math.floor(points.length / 2)];
-      if (!Array.isArray(point) || !validCoordinates(point[0], point[1])) return;
+      // The API returns polyline points as {lat, lng} objects; older payloads
+      // used [lat, lng] arrays.  Support both so cable search is not empty.
+      const middle = Array.isArray(point)
+        ? { lat: point[0], lng: point[1] }
+        : point;
+      if (!middle || !validCoordinates(middle.lat, middle.lng)) return;
       list.push(
         makeEntry({
           id: `cable-${record.id}`,
@@ -393,8 +398,8 @@ const MapSearch = () => {
             .filter(Boolean)
             .join(" · "),
           searchText: `${record.starting_point} ${record.ending_point}`,
-          latitude: point[0],
-          longitude: point[1],
+          latitude: middle.lat,
+          longitude: middle.lng,
         })
       );
     });
