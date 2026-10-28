@@ -1050,28 +1050,12 @@ Enter the password from Step 6 when prompted.
 After successful login, run:
 
 If it shows `myapp_db`, the connection is correct. Since it's a new database, `SHOW TABLES` may show no tables, which is normal.
+```
+
 
 ### Setup Summary
 
 > **Security:** Always use your own strong passwords and never share your actual passwords with anyone.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 ---
